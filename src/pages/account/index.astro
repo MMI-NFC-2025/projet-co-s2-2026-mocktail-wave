@@ -1,0 +1,65 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { Image } from "astro:assets"; // Utilise l'import standard Astro
+import hero from "../../assets/images/social_hero.avif";
+import editicon from "../../assets/icons/neo_edit.svg";
+---
+
+<Layout title="Mon Compte">
+    <div class="flex flex-col gap-5">
+        <Image src={hero} alt="Hero Image" class="hero" />
+        <div class="p-5">
+            <h1 id="profile-tag" class="neo-title text-3xl text-center">
+                Chargement...
+            </h1>
+            <p class="">
+                <a
+                    href="/account/edit"
+                    class="flex items-center gap-2 font-semibold mb-2 text-tonique justify-center"
+                >
+                    Modifier le profil
+                    <span><Image src={editicon} alt="Editer" /></span>
+                </a>
+            </p>
+            <button
+                id="logout-btn"
+                class="block mx-auto text-red-500 text-sm underline mb-5"
+                >Se déconnecter</button
+            >
+            <div class="separator"></div>
+        </div>
+
+        <div class="p-5">
+            <h2 class="neo-title text-3xl text-center">Vous participez à</h2>
+            <ul id="event-list" class="text-center mt-4">
+                <li class="text-gray-500">Aucun événement pour le moment.</li>
+            </ul>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import { isLogged, logout } from "../../../backend/backend.mjs";
+
+    async function init() {
+        const user = await isLogged();
+
+        if (!user) {
+            window.location.href = "/account/login";
+            return;
+        }
+
+        const titleElement = document.getElementById("profile-tag");
+        if (titleElement) {
+            titleElement.textContent = user.tag;
+        }
+
+        document.getElementById("logout-btn")?.addEventListener("click", () => {
+            logout();
+            window.location.href = "/";
+        });
+        //const events = await pb.collection('participations').getList(1, 10, { filter: `user = "${user.id}"` });
+    }
+
+    init();
+</script>

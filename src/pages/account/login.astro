@@ -1,0 +1,100 @@
+---
+import Layout from "../../layouts/loginLayout.astro";
+import Image from "astro/components/Image.astro";
+import logo from "../../assets/icons/logo.svg";
+import email from "../../assets/icons/mail.svg";
+import pwd from "../../assets/icons/pw.svg";
+---
+
+<Layout title="Connexion">
+    <main class="w-full max-w-md p-6 mt-10">
+        <div class="p-8 flex flex-col items-center gap-5">
+            <div class="mb-6">
+                <Image src={logo} alt="logo image" />
+            </div>
+
+            <div class="flex flex-col items-center">
+                <h1 class="text-3xl mb-2">Connexion</h1>
+                <p class="text-sm">
+                    Pas encore de compte ? <a
+                        href="/account/register"
+                        class="text-secondaire">Créez en un</a
+                    >
+                </p>
+            </div>
+
+            <form class="w-full mt-8 space-y-4" id="login-form">
+                <div class="relative">
+                    <span
+                        class="absolute inset-y-0 left-3 flex items-center text-gray-400"
+                    >
+                        <Image src={email} alt="" />
+                    </span>
+                    <input
+                        name="email"
+                        type="email"
+                        placeholder="adresse@gmail.com"
+                        required
+                        class="w-full pl-10 pr-4 py-3 rounded-lg bg-white text-black focus:outline-none"
+                    />
+                </div>
+
+                <div class="relative">
+                    <span
+                        class="absolute inset-y-0 left-3 flex items-center text-gray-400"
+                    >
+                        <Image src={pwd} alt="" />
+                    </span>
+                    <input
+                        name="password"
+                        type="password"
+                        placeholder="*******"
+                        required
+                        class="w-full pl-10 pr-10 py-3 rounded-lg bg-white text-black focus:outline-none"
+                    />
+                </div>
+                <div class="text-center">
+                    <a
+                        href="/account/ForgetPWD"
+                        class="text-xs text-gray-400 underline"
+                        >Mot de Passe oublié ?</a
+                    >
+                </div>
+
+                <button class="action-btn w-full" type="submit">
+                    Connectez Vous
+                </button>
+                <div id="errorMessage"></div>
+            </form>
+        </div>
+    </main>
+</Layout>
+
+<script>
+    import { Userauth } from "../../../backend/backend.mjs";
+
+    const form = document.getElementById("login-form") as HTMLFormElement;
+    const errorMsg = document.getElementById("errorMessage");
+
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        errorMsg?.classList.add("hidden");
+
+        const formData = new FormData(form);
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        console.log(email, password);
+        try {
+            const auth = await Userauth(email, password);
+
+            if (auth) {
+                window.location.href = "/account";
+            } else {
+                errorMsg?.classList.remove("hidden");
+            }
+        } catch (err) {
+            errorMsg?.classList.remove("hidden");
+        }
+    });
+</script>

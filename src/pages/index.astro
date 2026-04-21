@@ -1,11 +1,146 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Layout from "../layouts/Layout.astro";
+import Image from "astro/components/Image.astro";
+import hero from "../assets/images/home_hero.avif";
+import neoHero from "../assets/images/neo_hero.svg";
+import icon from "../assets/icons/icon.svg";
+import palms from "../assets/icons/neo_palms.svg";
+import path from "../assets/icons/neo_path.svg";
+import social from "../assets/icons/neo_social.svg";
+import game from "../assets/icons/neo_game.svg";
+import smiley from "../assets/icons/neo_smiley.svg";
+import shield from "../assets/icons/neo_shield.svg";
+import drink from "../assets/icons/neo_drink.svg";
+import party from "../assets/icons/neo_party.svg";
+import montbeliard from "../assets/icons/montbeliard.webp";
+import doubs from "../assets/icons/doubs.webp";
+import secu from "../assets/icons/securite-routiere.webp";
 ---
 
 <Layout>
-	<Welcome />
+	<div class="flex flex-col gap-5">
+		<Image src={hero} alt="Hero Image" class="hero" />
+		<div class="flex flex-col relative items-center">
+			<div
+				class="flex justify-center items-center bg-linear-to-t from-dominante via-tonique/10 to-dominante"
+			>
+				<Image src={icon} alt="Icon logo" class="w-1/2" />
+			</div>
+			<Image
+				src={neoHero}
+				alt="Decor Neon"
+				class="w-full object-cover -translate-y-10"
+			/>
+			<div class="flex flex-col items-center">
+				<h1 class="text-3xl neo-title">Les cocktails c'est bien</h1>
+				<p class="text-lg">les mocktails c'est mieux !</p>
+			</div>
+		</div>
+		<div>
+			<div class="flex justify-center items-center">
+				<Image src={palms} alt="palmier icons" class="h-25 w-fit" />
+				<h2 class="text-3xl neo-title max-w-3/8 text-center">
+					Découvrez Mocktail Wave
+				</h2>
+				<Image
+					src={palms}
+					alt="palmier icons"
+					class="h-25 w-fit rotate-x-180 rotate-z-180"
+				/>
+			</div>
+		</div>
+		<div class="flex flex-col gap-5 px-5">
+			<p>
+				<span class="text-secondaire font-bold">Mocktail Wave</span> est une
+				plateforme pensée pour simplifier l’organisation de vos soirées dans
+				les bars du Doubs.
+			</p>
+			<p>
+				<span class="text-secondaire font-bold">Créez un événement</span
+				>, invitez vos amis et découvrez les bars de la ville en toute
+				simplicité.
+			</p>
+			<p>
+				<span class="text-secondaire font-bold"
+					>Notre esthétique rétro-wave</span
+				>, plonge chacune de vos sorties en expériences conviviales,
+				fluides et originales.
+			</p>
+		</div>
+		<div class="separator"></div>
+		<div class="flex flex-col gap-5 px-5">
+			<h2 class="text-3xl neo-title text-center">Nos Fonctionnalités</h2>
+			<div class="flex gap-5">
+				<Image src={path} alt="palmier icons" class="w-15 h-fit" />
+				<p>
+					<span class="text-secondaire font-bold"
+						>Une carte interactive !</span
+					> Découvrez les bars de Montbéliard, leurs informations et planifiez
+					votre parcours.
+				</p>
+			</div>
+			<div class="flex gap-5">
+				<Image src={social} alt="palmier icons" class="w-15 h-fit" />
+				<p>
+					<span class="text-secondaire font-bold"
+						>Invitez vos amis</span
+					> à votre soirée directement sur la plateforme et profitez ensemble
+					!
+				</p>
+			</div>
+			<div class="flex gap-5">
+				<Image src={game} alt="palmier icons" class="w-15 h-fit" />
+				<p>
+					<span class="text-secondaire font-bold"
+						>Participez à des mini-jeux</span
+					> amusants dans les bars pour tester vos réflexes entre vous et
+					vos amis !
+				</p>
+			</div>
+		</div>
+		<div class="separator"></div>
+		<div class="flex flex-col gap-5">
+			<div class="flex justify-between px-10 items-center">
+				<Image src={smiley} alt="palmier icons" class="h-10 w-fit" />
+				<h2 class="text-3xl neo-title text-center">Nos Valeurs</h2>
+				<Image
+					src={smiley}
+					alt="palmier icons"
+					class="h-10 w-fit rotate-x-180 rotate-z-180"
+				/>
+			</div>
+			<div class="grid grid-cols-3 px-10">
+				<div class="flex flex-col items-center">
+					<Image src={shield} alt="Security Icon" />
+					<p class="bebas text-xl">Sécurité</p>
+				</div>
+				<div class="flex flex-col items-center">
+					<Image src={drink} alt="Moderate icon" />
+					<p class="bebas text-xl">Modération</p>
+				</div>
+				<div class="flex flex-col items-center">
+					<Image src={party} alt="Party icon" />
+					<p class="bebas text-xl">Ambiance</p>
+				</div>
+			</div>
+		</div>
+		<div class="separator"></div>
+		<div class="flex flex-col items-center gap-3">
+			<div class="flex flex-col items-center">
+				<h2 class="text-3xl neo-title">Rejoins la communautée</h2>
+				<p class="text-lg">Profite de toutes les fonctionnalitées</p>
+			</div>
+			<a href="/register" class="page-btn">Inscription / Connexion</a>
+			<div class="px-10 py-5 flex flex-col items-center gap-3">
+				<h2 class="text-3xl neo-title">Nos Sponsors</h2>
+				<ul
+					class="bg-white flex flex-wrap gap-5 justify-center p-5 rounded-2xl"
+				>
+					<li><Image src={montbeliard} alt="Montbeliard Logo" /></li>
+					<li><Image src={doubs} alt="Doubs Logo" /></li>
+					<li><Image src={secu} alt="Securite Routiere Logo" /></li>
+				</ul>
+			</div>
+		</div>
+	</div>
 </Layout>

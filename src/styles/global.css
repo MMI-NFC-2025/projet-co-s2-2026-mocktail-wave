@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@layer base {
+    body {
+        font-family: 'Roboto Variable', sans-serif;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: 'Bebas Neue', sans-serif;
+    }
+}
+
+@layer components {
+    .hero {
+        height: 13rem;
+        object-fit: cover;
+    }
+
+    .separator {
+        width: 90%;
+        height: 2px;
+        background: #6172c5;
+        border-radius: 2px;
+        box-shadow: 0 0 10px 3px rgba(97, 114, 197, 0.5);
+        margin: auto;
+    }
+
+    .bebas {
+        font-family: 'Bebas Neue', sans-serif;
+    }
+
+    .neo-title {
+        text-shadow: 0 0 10px #6172c5;
+    }
+
+    .page-btn {
+        width: fit-content;
+        padding: 0.5rem 1.5rem;
+        border-radius: 20px;
+        background: linear-gradient(to bottom, #FA8057, #ED2EA5);
+    }
+
+    .action-btn {
+        width: fit-content;
+        padding: 0.5rem 1.5rem;
+        border-radius: 20px;
+        background: linear-gradient(to top, #fa8057, #fad009);
+    }
+
+    .gradient {
+        width: fit-content;
+        padding: 0.5rem 1.5rem;
+        border-radius: 20px;
+        background: linear-gradient(to top, #6172c5, #ed2ea5);
+    }
+}
+
+@theme {
+    --color-dominante: #2c0d2a;
+    --color-dominante-light: #6172c5;
+    --color-secondaire: #fad009;
+    --color-secondaire-dark: #fa8057;
+    --color-tonique: #ed2ea5;
+    --color-brand-dark: #221d22;
+}

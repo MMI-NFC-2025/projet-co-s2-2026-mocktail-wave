@@ -1,0 +1,219 @@
+---
+import Image from "astro/components/Image.astro";
+import Layout from "../../layouts/Layout.astro";
+import hero from "../../assets/images/social_hero.avif";
+---
+
+<Layout title="Social - Amis">
+    <Image src={hero} alt="Hero Image" class="hero" />
+
+    <div class="p-5">
+        <h1 class="neo-title text-3xl text-center">Votre Tag</h1>
+        <p class="font-semibold mb-2 text-tonique text-center" id="account-tag">
+        </p>
+    </div>
+    <div class="separator"></div>
+
+    <div class="p-5">
+        <h2 class="neo-title text-3xl text-center mb-5">Ajouter des amis</h2>
+        <form id="add-friend-form" class="flex flex-col items-center gap-5">
+            <input
+                id="add-friend-input"
+                type="text"
+                placeholder="Pseudo#1234"
+                class="bg-white text-black py-3 px-5 rounded-md text-base w-full"
+            />
+            <button type="submit" class="action-btn font-semibold"
+                >Ajouter</button
+            >
+        </form>
+    </div>
+    <div class="separator"></div>
+
+    <div class="p-5 requestDiv">
+        <h2 class="neo-title text-3xl text-center mb-5">Vous ont ajoutés</h2>
+        <ul id="friends-requests" class="w-full flex flex-col gap-2"></ul>
+    </div>
+    <div class="separator"></div>
+
+    <div class="p-5">
+        <h2 class="neo-title text-3xl text-center mb-5">Vos amis</h2>
+        <div class="flex flex-col items-center gap-5">
+            <input
+                id="search-friend-input"
+                type="text"
+                placeholder="Rechercher un ami..."
+                class="bg-white text-black py-3 px-5 rounded-md text-base w-full"
+            />
+            <ul id="friends-list" class="w-full flex flex-col gap-2"></ul>
+        </div>
+
+        <div
+            id="pagination-container"
+            class="flex w-full justify-center gap-2 mt-5"
+        >
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import {
+        isLogged,
+        addFriend,
+        deleteFriends,
+        getSocialData,
+        declineRequest,
+    } from "../../../backend/backend.mjs";
+
+    let currentUser = null;
+    let friendsFullList = [];
+    let filteredFriends = [];
+    let requestsList = [];
+    let currentPage = 1;
+    const itemsPerPage = 5;
+
+    async function init() {
+        currentUser = await isLogged();
+        if (!currentUser) return (window.location.href = "/account/login");
+
+        document.querySelector("#account-tag").textContent = currentUser.tag;
+
+        const addForm = document.querySelector("#add-friend-form");
+        const addInput = document.querySelector("#add-friend-input");
+        const searchInput = document.querySelector("#search-friend-input");
+        const requestsListCont = document.querySelector("#friends-requests");
+        const friendsListCont = document.querySelector("#friends-list");
+        const paginationCont = document.querySelector("#pagination-container");
+
+        await updateData();
+        renderAll(friendsListCont, paginationCont, requestsListCont);
+
+        addForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            try {
+                const res = await addFriend(addInput.value.trim());
+                alert(res);
+                addInput.value = "";
+                await updateData();
+                renderAll(friendsListCont, paginationCont, requestsListCont);
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        searchInput.addEventListener("input", (e) => {
+            const val = e.target.value.toLowerCase();
+            filteredFriends = friendsFullList.filter(
+                (f) =>
+                    f.tag.toLowerCase().includes(val) ||
+                    (f.pseudo && f.pseudo.toLowerCase().includes(val)),
+            );
+            currentPage = 1;
+            renderFriends(friendsListCont, paginationCont);
+        });
+    }
+
+    async function updateData() {
+        try {
+            const data = await getSocialData();
+            friendsFullList = data.friends;
+            requestsList = data.requests;
+            filteredFriends = [...friendsFullList];
+        } catch (err) {
+            console.error("Erreur de récupération des données sociales:", err);
+        }
+    }
+
+    function renderAll(fList, fPag, rList) {
+        renderFriends(fList, fPag);
+        renderRequests(rList, fList, fPag);
+    }
+
+    function renderRequests(container, fList, fPag) {
+        container.innerHTML = "";
+        if (requestsList.length === 0) {
+            const requestDiv = document.querySelector(".requestDiv");
+            requestDiv.classList.add("hidden");
+            return;
+        }
+
+        requestsList.forEach((sender) => {
+            const li = document.createElement("li");
+            li.className =
+                "py-3 border-b gap-3 flex-col border-white/10 flex justify-between items-center";
+            li.innerHTML = `
+                <a class="font-medium w-full text-center page-btn" href="/social/${sender.id}">${sender.tag}</a>
+                <div class="flex items-center gap-5">
+                    <button class="rounded-full py-1 px-4 text-xs accept-btn bg-green-600" data-tag="${sender.tag}">Accepter</button>
+                    <button class="rounded-full py-1 px-4 text-xs decline-btn text-red-600 border-1 border border-red-600" data-id="${sender.id}">Refuser</button> 
+                </div>
+            `;
+            li.querySelector(".accept-btn").onclick = async (e) => {
+                await addFriend(e.target.dataset.tag);
+                await updateData();
+                renderAll(fList, fPag, container);
+            };
+            li.querySelector(".decline-btn").onclick = async (e) => {
+                await declineRequest(e.target.dataset.id);
+                await updateData();
+                renderAll(fList, fPag, container);
+            };
+            container.appendChild(li);
+        });
+    }
+
+    function renderFriends(list, pagination) {
+        list.innerHTML = "";
+        const start = (currentPage - 1) * itemsPerPage;
+        const paginatedItems = filteredFriends.slice(
+            start,
+            start + itemsPerPage,
+        );
+
+        if (paginatedItems.length === 0) {
+            list.innerHTML =
+                "<li class='text-center text-gray-500 py-4'>Aucun ami</li>";
+        } else {
+            paginatedItems.forEach((friend) => {
+                const li = document.createElement("li");
+                li.className =
+                    "py-3 border-b border-white/10 flex justify-between items-center gap-5";
+                li.innerHTML = `
+                    <a class="font-medium flex-1 text-center page-btn" href="/social/${friend.id}">${friend.tag}</a>
+                    <button class="text-sm text-red-400 delete-btn" data-id="${friend.id}">Supprimer</button>
+                `;
+                li.querySelector(".delete-btn").onclick = async (e) => {
+                    if (confirm("Supprimer ?")) {
+                        await deleteFriends(e.target.dataset.id);
+                        await updateData();
+                        renderAll(
+                            list,
+                            pagination,
+                            document.querySelector("#friends-requests"),
+                        );
+                    }
+                };
+                list.appendChild(li);
+            });
+        }
+        renderPagination(pagination, list);
+    }
+
+    function renderPagination(container, list) {
+        const totalPages = Math.ceil(filteredFriends.length / itemsPerPage);
+        container.innerHTML =
+            totalPages > 1 ? `<p class="opacity-50">Pages</p>` : "";
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.textContent = i;
+            btn.className = `px-2 ${i === currentPage ? "text-tonique font-bold" : "text-white"}`;
+            btn.onclick = () => {
+                currentPage = i;
+                renderFriends(list, container);
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    init();
+</script>

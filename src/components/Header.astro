@@ -1,0 +1,96 @@
+---
+import Image from "astro/components/Image.astro";
+import homeImage from "../assets/icons/home.svg";
+import mapImage from "../assets/icons/map.svg";
+import socialImage from "../assets/icons/social.svg";
+import profileImage from "../assets/icons/profile.svg";
+import shopImage from "../assets/icons/cart.svg";
+---
+
+<header class="fixed w-full right-0 top-5 z-30">
+    <div
+        class="bg-brand-dark/20 backdrop-blur overflow-hidden rounded-full shadow shadow-md flex items-center px-7 py-4"
+    >
+        <ul
+            class="flex items-center w-full justify-between overflow-hidden header__content"
+        >
+            <li>
+                <a
+                    href="/"
+                    class="flex flex-col items-center gap-1 justify-between"
+                >
+                    <Image src={homeImage} alt="home icon" class="h-7 w-fit" />
+                    <p>Accueil</p>
+                </a>
+            </li>
+            <li>
+                <a
+                    href="/map"
+                    class="flex flex-col items-center gap-1 justify-between"
+                >
+                    <Image src={mapImage} alt="map icon" class="h-7 w-fit" />
+                    <p>Carte</p>
+                </a>
+            </li>
+            <li>
+                <a
+                    href="/social"
+                    class="flex flex-col items-center gap-1 justify-between"
+                >
+                    <Image
+                        src={socialImage}
+                        alt="social icon"
+                        class="h-7 w-fit"
+                    />
+                    <p>Social</p>
+                </a>
+            </li>
+            <li>
+                <a
+                    href="/account"
+                    class="flex flex-col items-center gap-1 justify-between"
+                >
+                    <Image
+                        src={profileImage}
+                        alt="profile icon"
+                        class="h-7 w-fit"
+                    />
+                    <p>Compte</p>
+                </a>
+            </li>
+            <li>
+                <a
+                    href="/shop"
+                    class="flex flex-col items-center gap-1 justify-between"
+                >
+                    <Image src={shopImage} alt="shop icon" class="h-7 w-fit" />
+                    <p>Shop</p>
+                </a>
+            </li>
+        </ul>
+        <button
+            class="menu-btn w-6 flex flex-col gap-2 ml-7"
+            aria-expanded="false"
+        >
+            <span class="h-[2px] bg-white w-full"></span>
+            <span class="h-[2px] bg-white w-full"></span>
+            <span class="h-[2px] bg-white w-full"></span>
+        </button>
+    </div>
+</header>
+
+<script>
+    const menubtn = document.querySelector(".menu-btn");
+    const header = document.querySelector("header");
+    const content = document.querySelector(".header__content");
+    menubtn?.addEventListener("click", () => {
+        const isOpen = menubtn.ariaExpanded;
+        console.log(isOpen);
+        menubtn.ariaExpanded = isOpen === "true" ? "false" : "true";
+        header?.classList.toggle("w-full");
+        header?.classList.toggle("w-fit");
+        content?.classList.toggle("w-full");
+        content?.classList.toggle("w-0");
+        menubtn?.classList.toggle("ml-7");
+    });
+</script>

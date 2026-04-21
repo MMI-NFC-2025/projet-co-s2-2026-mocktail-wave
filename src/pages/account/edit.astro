@@ -1,0 +1,202 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { Image } from "astro:assets"; // Utilise l'import standard Astro
+import hero from "../../assets/images/social_hero.avif";
+import editicon from "../../assets/icons/neo_edit.svg";
+---
+
+<Layout title="Mon Compte">
+    <div class="flex flex-col gap-5">
+        <Image src={hero} alt="Hero Image" class="hero" />
+        <div class="p-5 space-y-3">
+            <h1 class="neo-title text-3xl text-center">Vos Informations</h1>
+            <div class="separator"></div>
+        </div>
+
+        <form class="flex flex-col gap-5 mb-10">
+            <div class="p-5 space-y-4">
+                <p class="font-semibold text-xl">Informations Personnelles</p>
+
+                <div
+                    class="grid grid-cols-[75px_1fr] items-center gap-y-3 gap-x-4"
+                >
+                    <label class="text-tonique font-semibold" for="prename"
+                        >Prénom :</label
+                    >
+                    <input
+                        type="text"
+                        name="prename"
+                        id="prename"
+                        class="rounded-md bg-white text-black px-2 py-1 border border-gray-300"
+                    />
+
+                    <label class="text-tonique font-semibold" for="name"
+                        >Nom :</label
+                    >
+                    <input
+                        type="text"
+                        name="name"
+                        id="name"
+                        class="rounded-md bg-white text-black px-2 py-1 border border-gray-300"
+                    />
+
+                    <label class="text-tonique font-semibold" for="email"
+                        >Email :</label
+                    >
+                    <input
+                        type="text"
+                        name="email"
+                        id="email"
+                        class="rounded-md bg-white text-black px-2 py-1 border border-gray-300"
+                    />
+                </div>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <p class="font-semibold text-xl">Confidentialité</p>
+
+                <div
+                    class="grid grid-cols-[150px_1fr] items-center gap-y-3 gap-x-4"
+                >
+                    <label class="text-tonique font-semibold" for="nameConf"
+                        >Nom/Prénom :</label
+                    >
+                    <select
+                        name="nameConf"
+                        id="nameConf"
+                        class="rounded-md bg-white/20 text-white px-2 py-1"
+                    >
+                        <option
+                            value="privee"
+                            class="text-xs font-medium text-black"
+                            >Privée</option
+                        >
+                        <option
+                            value="public"
+                            class="text-xs font-medium text-black"
+                            >Public</option
+                        >
+                        <option
+                            value="amis"
+                            class="text-xs font-medium text-black"
+                            >Amis seulement</option
+                        >
+                    </select>
+
+                    <label class="text-tonique font-semibold" for="eventsConf"
+                        >Mes soirées :</label
+                    >
+                    <select
+                        name="eventsConf"
+                        id="eventsConf"
+                        class="rounded-md bg-white/20 text-white px-2 py-1"
+                    >
+                        <option
+                            value="privee"
+                            class="text-xs font-medium text-black"
+                            >Privée</option
+                        >
+                        <option
+                            value="public"
+                            class="text-xs font-medium text-black"
+                            >Public</option
+                        >
+                        <option
+                            value="amis"
+                            class="text-xs font-medium text-black"
+                            >Amis seulement</option
+                        >
+                    </select>
+
+                    <label class="text-tonique font-semibold" for="emailConf"
+                        >Mon email :</label
+                    >
+                    <select
+                        name="emailConf"
+                        id="emailConf"
+                        class="rounded-md bg-white/20 text-white px-2 py-1"
+                    >
+                        <option
+                            value="privee"
+                            class="text-xs font-medium text-black"
+                            >Privée</option
+                        >
+                        <option
+                            value="public"
+                            class="text-xs font-medium text-black"
+                            >Public</option
+                        >
+                        <option
+                            value="amis"
+                            class="text-xs font-medium text-black"
+                            >Amis seulement</option
+                        >
+                    </select>
+                </div>
+            </div>
+
+            <button
+                type="submit"
+                class="action-btn m-auto px-6 py-2 bg-tonique text-white rounded-lg font-bold"
+            >
+                Valider les modifications
+            </button>
+        </form>
+    </div>
+</Layout>
+
+<script>
+    import {
+        isLogged,
+        logout,
+        updateUserInfo,
+    } from "../../../backend/backend.mjs";
+
+    async function init() {
+        const user = await isLogged();
+
+        if (!user) {
+            window.location.href = "/account/login";
+            return;
+        }
+
+        // --- Remplissage des champs (ton code actuel) ---
+        const form = document.querySelector("form");
+        const prename = document.querySelector("#prename");
+        const name = document.querySelector("#name");
+        const email = document.querySelector("#email");
+        const emailConf = document.querySelector("#emailConf");
+        const nameConf = document.querySelector("#nameConf");
+        const eventsConf = document.querySelector("#eventsConf");
+        if (prename && name && email && emailConf && nameConf && eventsConf) {
+            prename.value = user.prename;
+            name.value = user.name;
+            email.value = user.email;
+            emailConf.value = user.emailConf;
+            nameConf.value = user.nameConf;
+            eventsConf.value = user.eventsConf;
+        }
+
+        form?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const updatedData = {
+                prename: prename.value,
+                name: name.value,
+                email: email.value,
+                emailVisibility: emailConf.value,
+                NameVisibility: nameConf.value,
+                eventsVisibility: eventsConf.value,
+            };
+
+            try {
+                await updateUserInfo(updatedData);
+                alert("Profil mis à jour avec succès !");
+            } catch (error) {
+                alert("Erreur lors de la mise à jour : " + error.message);
+            }
+        });
+    }
+
+    init();
+</script>
