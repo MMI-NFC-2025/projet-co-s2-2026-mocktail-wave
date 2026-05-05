@@ -201,3 +201,36 @@ export async function getBars() {
     const bars = await pb.collection("bars").getFullList();
     return bars;
 }
+
+async function barExistsByOSMID(osmId) {
+    const found = await pb.collection('bars')
+        .getFirstListItem(`openStreetMapID = "${osmId}"`)
+        .catch(e => null);
+    return !!found;
+}
+
+export async function addBar(barData) {
+    const exists = await barExistsByOSMID(barData.id);
+
+    if (exists) {
+        throw new Error("Ce bar figure déjà dans la liste.");
+    }
+
+    try {
+        const data = {
+            name: barData.name,
+            themes: barData.themes,
+            address: barData.address,
+            lat: barData.lat,
+            lng: barData.lng,
+            imageUrl: barData.imageUrl,
+            openStreetMapID: barData.id.toString()
+        };
+
+        const record = await pb.collection('bars').create(data);
+        return record;
+    } catch (error) {
+        console.error("Erreur PocketBase create:", error);
+        throw new Error(error.message);
+    }
+}
