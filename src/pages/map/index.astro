@@ -5,7 +5,6 @@ import hero from "../../assets/images/map_hero.avif";
 
 import { getBars } from "../../../backend/backend.mjs";
 const bars = await getBars();
-console.log(bars);
 ---
 
 <Layout title="Carte des Bars">
@@ -62,7 +61,9 @@ console.log(bars);
                 Ma Sélection :
             </h2>
             <div id="selection-grid" class="grid grid-cols-2 gap-4"></div>
-            <button class="action-btn mt-4 font-bold">Créer une soirée</button>
+            <button id="create-party-btn" class="action-btn mt-4 font-bold"
+                >Créer une soirée</button
+            >
             <div class="separator mt-8"></div>
         </div>
 
@@ -91,6 +92,7 @@ console.log(bars);
 </style>
 <script>
     import L from "leaflet";
+    import { isLogged, updateUserInfo } from "../../../backend/backend.mjs";
 
     const mapElement = document.getElementById("map");
     const bars = JSON.parse(mapElement.dataset.bars);
@@ -101,7 +103,7 @@ console.log(bars);
     let currentPage = 1;
     const itemsPerPage = 6;
 
-    function init() {
+    async function init() {
         map = L.map("map", { zoomControl: false }).setView(
             [47.2378, 6.024],
             13,
@@ -245,7 +247,7 @@ console.log(bars);
             <button class="relative rounded-lg overflow-hidden h-40 shadow-md bar_card ${ring} transition-all" data-id='${bar.id}'>
                 <img src="${bar.imageUrl}" class="w-full h-full object-cover" />
                 <div class="absolute bottom-0 left-0 right-0 ${bgColorClass} text-white text-sm font-bold p-2 text-center">
-                    ${bar.name + " - 5⭐"}
+                    ${bar.name}
                 </div>
             </button>
         `;
@@ -275,6 +277,40 @@ console.log(bars);
         });
         return marker;
     }
+
+    async function createParty() {
+        const user = await isLogged();
+        const userID = user.id;
+        console.log(userID);
+        if (selected.length === 0) {
+            alert(
+                "Veuillez sélectionner au moins un bar pour créer une soirée.",
+            );
+            return;
+        }
+        try {
+            const response = await fetch("/api/addEvent", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ bars: selected, leader: userID }),
+            });
+            if (!response.ok)
+                throw new Error("Erreur lors de la création de la soirée");
+            const data = await response.json();
+            await updateUserInfo(data.userData);
+            window.location.href = `/soiree/${data.event.id}`;
+        } catch (err) {
+            alert("Erreur lors de la création de la soirée");
+        }
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+        const partyBtn = document.getElementById("create-party-btn");
+        if (partyBtn) {
+            partyBtn.addEventListener("click", createParty);
+        }
+    });
 
     init();
 </script>

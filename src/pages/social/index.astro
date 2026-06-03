@@ -60,7 +60,7 @@ import hero from "../../assets/images/social_hero.avif";
     import {
         isLogged,
         addFriend,
-        deleteFriends,
+        deleteFriend,
         getSocialData,
         declineRequest,
     } from "../../../backend/backend.mjs";
@@ -184,7 +184,7 @@ import hero from "../../assets/images/social_hero.avif";
                 `;
                 li.querySelector(".delete-btn").onclick = async (e) => {
                     if (confirm("Supprimer ?")) {
-                        await deleteFriends(e.target.dataset.id);
+                        await deleteFriend(e.target.dataset.id);
                         await updateData();
                         renderAll(
                             list,

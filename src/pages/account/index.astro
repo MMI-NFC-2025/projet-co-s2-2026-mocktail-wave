@@ -43,7 +43,6 @@ import editicon from "../../assets/icons/neo_edit.svg";
 
     async function init() {
         const user = await isLogged();
-
         if (!user) {
             window.location.href = "/account/login";
             return;
@@ -58,7 +57,64 @@ import editicon from "../../assets/icons/neo_edit.svg";
             logout();
             window.location.href = "/";
         });
-        //const events = await pb.collection('participations').getList(1, 10, { filter: `user = "${user.id}"` });
+
+        // Affichage des événements
+        const leaderOf = user.leader_of || [];
+        const memberOf = user.member_of || [];
+        const eventList = document.getElementById("event-list");
+        if (leaderOf.length === 0 && memberOf.length === 0) {
+            eventList.innerHTML =
+                '<li class="text-gray-500">Aucun événement pour le moment.</li>';
+            return;
+        }
+        try {
+            const response = await fetch("/api/getEvents", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    leader_of: leaderOf,
+                    member_of: memberOf,
+                }),
+            });
+            if (!response.ok)
+                throw new Error(
+                    "Erreur lors de la récupération des événements",
+                );
+            const events = await response.json();
+            if (!Array.isArray(events) || events.length === 0) {
+                eventList.innerHTML =
+                    '<li class="text-gray-500">Aucun événement pour le moment.</li>';
+                return;
+            }
+            eventList.innerHTML = events
+                .map(
+                    (ev) =>
+                        `
+        <a href="/soiree/${ev.id}" class="page-btn w-full mb-5 text-start flex justify-between items-center">
+            
+            <div>
+                <h3 class="font-semibold text-lg mb-1">
+                    ${ev.name || "SOIRÉE"} • ${ev.multi_bar ? "Multi-Bar" : "Bar"}
+                </h3>
+                <div class="text-sm space-y-0.5">
+                    <p>Organisé par : ${ev.expand?.leader?.tag || "XXXX"}</p>
+                    <p>${ev.date ? new Date(ev.date).toLocaleDateString("fr-FR") : "Date à programmer"}</p>
+                    <p>Participants : ${ev.members.length + 1}</p>
+                </div>
+            </div>
+
+            <button class="text-white opacity-80 hover:opacity-100 p-2" onclick="deleteEvent('${ev.id}')">
+                <img src="" alt="">
+            </button>
+
+        </a>
+        `,
+                )
+                .join("");
+        } catch (err) {
+            eventList.innerHTML =
+                '<li class="text-red-500">Erreur lors de la récupération des événements</li>';
+        }
     }
 
     init();

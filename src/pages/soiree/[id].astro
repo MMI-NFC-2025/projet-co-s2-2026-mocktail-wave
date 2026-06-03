@@ -1,0 +1,594 @@
+---
+import Image from "astro/components/Image.astro";
+import hero from "../../assets/images/event_hero.avif";
+import Layout from "../../layouts/Layout.astro";
+import editIcon from "../../assets/icons/edit.svg";
+import addIcon from "../../assets/icons/add.svg";
+
+const { id } = Astro.params;
+---
+
+<Layout>
+    <div id="event-page-container" data-id={id} class="flex flex-col gap-5">
+        <Image src={hero} alt="Hero Image" class="hero w-full object-cover" />
+
+        <div class="p-5 text-center">
+            <div
+                class="flex items-center justify-center gap-3 max-w-md mx-auto"
+            >
+                <h1
+                    id="event-title"
+                    class="neo-title text-3xl font-bold uppercase tracking-wide truncate"
+                >
+                    Analyse en cours...
+                </h1>
+
+                <input
+                    type="text"
+                    id="edit-title-input"
+                    class="hidden text-3xl font-bold bebas tracking-wide bg-[#2D1B4E] border-b-2 border-tonique text-white text-center focus:outline-none rounded w-full px-2"
+                />
+
+                <button
+                    id="edit-title-btn"
+                    class="text-white hover:text-tonique transition hidden shrink-0"
+                >
+                    <Image src={editIcon} alt="Modifier" id="icon-pencil" />
+                </button>
+
+                <button
+                    id="icon-check"
+                    class="bg-green-400 px-3 py-1 rounded-xl font-bold hidden text-black text-sm shrink-0 hover:bg-green-300 transition"
+                >
+                    Confirmer
+                </button>
+            </div>
+
+            <div class="flex justify-center gap-4 mt-3">
+                <span
+                    id="badge-leader"
+                    class="text-3xl hidden"
+                    title="Créateur de la soirée">👑</span
+                >
+                <span
+                    id="badge-sam"
+                    class="text-3xl hidden"
+                    title="SAM (Capitaine de soirée)">🛡️</span
+                >
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3 items-center">
+                <div
+                    class="gradient font-semibold flex items-center justify-center gap-2"
+                >
+                    <span id="countdown-label">Début dans :</span>
+                    <span id="countdown">XX:XX:XX</span>
+
+                    <button
+                        id="edit-date-btn"
+                        class="hidden text-white hover:text-tonique transition ml-1 shrink-0"
+                    >
+                        <Image
+                            src={editIcon}
+                            alt="Modifier la date"
+                            class="w-4 h-4"
+                        />
+                    </button>
+                </div>
+
+                <div
+                    id="date-picker-container"
+                    class="hidden flex items-center gap-2 max-w-xs mx-auto"
+                >
+                    <input
+                        type="datetime-local"
+                        id="edit-date-input"
+                        class="bg-[#2D1B4E] border-2 border-tonique text-white px-3 py-1.5 rounded-xl font-semibold text-sm focus:outline-none"
+                    />
+                    <button
+                        id="confirm-date-btn"
+                        class="bg-green-400 text-black px-3 py-1.5 rounded-xl font-bold text-sm hover:bg-green-300 transition"
+                    >
+                        Ok
+                    </button>
+                </div>
+
+                <button class="action-btn font-bold">
+                    Que la soirée commence !
+                </button>
+            </div>
+            <div class="separator mt-6"></div>
+        </div>
+
+        <div id="bars-container" class="px-5 max-w-md mx-auto w-full"></div>
+
+        <div class="p-5 max-w-md mx-auto w-full">
+            <h2 class="neo-title text-3xl mb-4">Participants</h2>
+
+            <ul id="participants-list" class="flex flex-col gap-3 mb-5"></ul>
+
+            <div class="relative w-full max-w-sm mx-auto">
+                <div class="relative w-full">
+                    <input
+                        type="text"
+                        id="search-friends-input"
+                        placeholder="Rechercher un ami à inviter..."
+                        class="w-full bg-white text-gray-900 px-4 py-3 pr-12 rounded-xl font-medium placeholder-gray-400 focus:outline-none shadow-md"
+                        autocomplete="off"
+                    />
+                    <div
+                        class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                    >
+                        <span
+                            id="accordion-arrow"
+                            class="transition-transform duration-300 text-gray-400 inline-block text-xs"
+                            >▼</span
+                        >
+                    </div>
+                </div>
+
+                <div
+                    id="friends-accordion-content"
+                    class="hidden absolute z-10 left-0 right-0 max-h-60 overflow-y-auto mt-2 bg-[#2D1B4E] border border-tonique/30 rounded-2xl p-3 shadow-xl flex flex-col gap-2"
+                >
+                    <ul id="friends-list" class="flex flex-col gap-2"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import {
+        getEvent,
+        isLogged,
+        updateEventTitle,
+        updateEventDate,
+        addParticipantToEvent,
+        getFriendList,
+    } from "../../../backend/backend.mjs";
+
+    let countdownInterval: number | undefined;
+
+    function startCountdown(eventDateString: string) {
+        const countdownEl = document.getElementById("countdown");
+        const countdownLabel = document.getElementById("countdown-label");
+        if (!countdownEl || !countdownLabel) return;
+
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        countdownLabel.textContent = "Début dans :";
+        const targetDate = new Date(eventDateString).getTime();
+
+        function updateClock() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance <= 0) {
+                countdownEl.textContent = "C'est parti ! 🎉";
+                if (countdownInterval) clearInterval(countdownInterval);
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor(
+                (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+            );
+            const minutes = Math.floor(
+                (distance % (1000 * 60 * 60)) / (1000 * 60),
+            );
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const pad = (num: number) => String(num).padStart(2, "0");
+
+            if (days > 0) {
+                countdownEl.textContent = `${days}j ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+            } else {
+                countdownEl.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+            }
+        }
+
+        updateClock();
+        countdownInterval = setInterval(updateClock, 1000) as unknown as number;
+    }
+
+    async function init() {
+        const container = document.getElementById("event-page-container");
+        if (!container) return;
+        const id = container.getAttribute("data-id");
+        if (!id) return;
+
+        const currentUser = await isLogged();
+        if (!currentUser) {
+            window.location.href = "/account/login";
+            return;
+        }
+
+        try {
+            const soiree = await getEvent(id);
+
+            const titleHeading = document.getElementById("event-title");
+            const editInput = document.getElementById(
+                "edit-title-input",
+            ) as HTMLInputElement;
+            const editBtn = document.getElementById("edit-title-btn");
+            const iconCheck = document.getElementById("icon-check");
+
+            const countdownEl = document.getElementById("countdown");
+            const countdownLabel = document.getElementById("countdown-label");
+            const editDateBtn = document.getElementById("edit-date-btn");
+            const datePickerContainer = document.getElementById(
+                "date-picker-container",
+            );
+            const editDateInput = document.getElementById(
+                "edit-date-input",
+            ) as HTMLInputElement;
+            const confirmDateBtn = document.getElementById("confirm-date-btn");
+
+            const isLeader = soiree.leader === currentUser.id;
+            const isSam = soiree.sam === currentUser.id;
+
+            if (titleHeading) {
+                titleHeading.textContent =
+                    soiree.title || soiree.name || "Nom de la soirée";
+            }
+
+            if (isLeader) {
+                editBtn?.classList.remove("hidden");
+                document
+                    .getElementById("badge-leader")
+                    ?.classList.remove("hidden");
+            }
+            if (isSam) {
+                document
+                    .getElementById("badge-sam")
+                    ?.classList.remove("hidden");
+            }
+
+            let initialDate = soiree.date || soiree.event_date;
+
+            if (initialDate) {
+                startCountdown(initialDate);
+                if (isLeader) editDateBtn?.classList.remove("hidden");
+            } else {
+                if (countdownEl && countdownLabel) {
+                    countdownLabel.textContent = "";
+                    if (isLeader) {
+                        countdownEl.textContent =
+                            "Définir la date de la soirée";
+                        countdownEl.classList.add(
+                            "cursor-pointer",
+                            "underline",
+                            "text-amber-400",
+                        );
+                    } else {
+                        countdownEl.textContent = "Date à définir";
+                    }
+                }
+            }
+
+            if (
+                isLeader &&
+                countdownEl &&
+                datePickerContainer &&
+                editDateInput &&
+                confirmDateBtn
+            ) {
+                const openDateEditor = () => {
+                    if (initialDate) {
+                        const d = new Date(initialDate);
+                        const tzoffset = d.getTimezoneOffset() * 60000;
+                        const localISOTime = new Date(d.getTime() - tzoffset)
+                            .toISOString()
+                            .slice(0, 16);
+                        editDateInput.value = localISOTime;
+                    }
+
+                    countdownEl.classList.add("hidden");
+                    if (countdownLabel) countdownLabel.classList.add("hidden");
+                    editDateBtn?.classList.add("hidden");
+                    datePickerContainer.classList.remove("hidden");
+                };
+
+                countdownEl.addEventListener("click", () => {
+                    if (!initialDate) openDateEditor();
+                });
+                editDateBtn?.addEventListener("click", openDateEditor);
+
+                confirmDateBtn.addEventListener("click", async () => {
+                    const newDateValue = editDateInput.value;
+                    if (!newDateValue) return;
+
+                    try {
+                        confirmDateBtn.setAttribute("disabled", "true");
+                        const isoDate = new Date(newDateValue).toISOString();
+
+                        await updateEventDate(id, isoDate);
+                        initialDate = isoDate;
+
+                        datePickerContainer.classList.add("hidden");
+                        countdownEl.classList.remove("hidden");
+                        if (countdownLabel)
+                            countdownLabel.classList.remove("hidden");
+                        editDateBtn?.classList.remove("hidden");
+                        countdownEl.classList.remove(
+                            "cursor-pointer",
+                            "underline",
+                            "text-amber-400",
+                        );
+
+                        startCountdown(isoDate);
+                    } catch (err) {
+                        console.error(err);
+                        alert("Erreur lors de la modification de la date.");
+                    } finally {
+                        confirmDateBtn.removeAttribute("disabled");
+                    }
+                });
+            }
+
+            let isEditing = false;
+
+            async function saveTitle() {
+                if (!titleHeading || !editInput || !editBtn || !iconCheck)
+                    return;
+
+                const currentTitle = titleHeading.textContent?.trim() || "";
+                const newTitle = editInput.value.trim();
+
+                if (newTitle && newTitle !== currentTitle) {
+                    try {
+                        editBtn.setAttribute("disabled", "true");
+                        iconCheck.setAttribute("disabled", "true");
+                        titleHeading.textContent = "...";
+
+                        await updateEventTitle(id, newTitle);
+                        titleHeading.textContent = newTitle;
+                    } catch (err) {
+                        console.error(err);
+                        alert("Erreur lors du changement de nom.");
+                        titleHeading.textContent = currentTitle;
+                    } finally {
+                        editBtn.removeAttribute("disabled");
+                        iconCheck.removeAttribute("disabled");
+                    }
+                }
+
+                editInput.classList.add("hidden");
+                titleHeading.classList.remove("hidden");
+                iconCheck.classList.add("hidden");
+                editBtn.classList.remove("hidden");
+                isEditing = false;
+            }
+
+            if (editBtn && titleHeading && editInput && iconCheck) {
+                editBtn.addEventListener("click", () => {
+                    isEditing = true;
+                    editInput.value = titleHeading.textContent?.trim() || "";
+
+                    titleHeading.classList.add("hidden");
+                    editBtn.classList.add("hidden");
+                    editInput.classList.remove("hidden");
+                    iconCheck.classList.remove("hidden");
+                    editInput.focus();
+                });
+
+                iconCheck.addEventListener("click", async () => {
+                    await saveTitle();
+                });
+
+                editInput.addEventListener("keydown", async (e) => {
+                    if (e.key === "Enter") {
+                        await saveTitle();
+                    }
+                });
+            }
+
+            // --- Section Bars ---
+            const barsContainer = document.getElementById("bars-container");
+            const bars = soiree.expand?.bars || [];
+
+            if (barsContainer && bars.length > 0) {
+                if (bars.length === 1) {
+                    const bar = bars[0];
+                    barsContainer.innerHTML = `
+                        <div class="relative w-full rounded-3xl overflow-hidden shadow-2xl aspect-square max-w-sm mx-auto bg-gray-900">
+                            <img src="${bar.imageUrl || "/images/default-bar.jpg"}" alt="${bar.name}" class="w-full h-full object-cover"/>
+                            <div class="absolute bottom-0 left-0 right-0 bg-[#E2B714]/80 backdrop-blur-md p-4 rounded-2xl text-white shadow-lg">
+                                <h3 class="text-2xl font-bold uppercase tracking-wide truncate">${bar.name || "Nom du bar"}</h3>
+                                <p class="text-sm font-medium mt-1 opacity-90 truncate">Adresse : ${bar.address || "XX rue du XXXXX"}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const colors = [
+                        "bg-[#F37349]",
+                        "bg-[#E2B714]",
+                        "bg-[#E532A7]",
+                    ];
+                    const dotColors = [
+                        "bg-[#E532A7]",
+                        "bg-[#F37349]",
+                        "bg-[#E2B714]",
+                    ];
+
+                    const dotsHtml = `
+                        <div class="flex justify-center gap-12 mb-5">
+                            ${dotColors.map((dotColor) => `<span class="w-3.5 h-3.5 rounded-full ${dotColor} inline-block shadow-sm"></span>`).join("")}
+                        </div>
+                    `;
+
+                    const listHtml = `
+                        <div class="flex flex-col gap-4 max-w-sm mx-auto">
+                            ${bars
+                                .map((bar, index) => {
+                                    const currentColorClass =
+                                        colors[index % colors.length];
+                                    return `
+                                    <div class="${currentColorClass} p-4 rounded-2xl shadow-lg text-white transition transform active:scale-95 cursor-pointer">
+                                        <h3 class="text-xl font-bold uppercase tracking-wide truncate">${bar.name || "Nom du bar"}</h3>
+                                        <p class="text-sm mt-0.5 opacity-90 font-medium truncate">Adresse : ${bar.address || "XX rue du XXXXX"}</p>
+                                    </div>
+                                `;
+                                })
+                                .join("")}
+                        </div>
+                    `;
+                    barsContainer.innerHTML = dotsHtml + listHtml;
+                }
+            }
+
+            const participantsList =
+                document.getElementById("participants-list");
+            const searchFriendsInput = document.getElementById(
+                "search-friends-input",
+            ) as HTMLInputElement;
+            const accordionContent = document.getElementById(
+                "friends-accordion-content",
+            );
+            const accordionArrow = document.getElementById("accordion-arrow");
+            const friendsListEl = document.getElementById("friends-list");
+
+            const participants = soiree.expand?.members || [];
+
+            const myFriends = await getFriendList(currentUser.id);
+            console.log(myFriends);
+
+            function renderParticipants() {
+                if (!participantsList) return;
+
+                if (participants.length === 0) {
+                    participantsList.innerHTML = `<li class="text-gray-400 text-center italic py-2">Aucun participant trouvé</li>`;
+                    return;
+                }
+
+                participantsList.innerHTML = participants
+                    .map((user) => {
+                        const isUserLeader = soiree.leader === user.id;
+                        const isUserSam = soiree.sam === user.id;
+
+                        return `
+                            <li class="flex items-center justify-between gap-4 max-w-sm mx-auto w-full">
+                                <div class="flex-1 flex items-center justify-between page-btn font-semibold px-4 py-2 bg-white/5 rounded-xl border border-white/10 truncate">
+                                    <a href="/social/${user.id}" class="truncate hover:text-tonique transition flex-1 flex justify-center text-center">
+                                        <div class="flex-1">
+                                            ${user.tag} 
+                                        </div>                                       
+                                        <div class="flex items-center gap-2 shrink-0 ml-2">
+                                            <div class="text-xl select-none transition-opacity duration-200 ${isUserLeader ? "opacity-100" : "opacity-15"}" title="Créateur">👑</div>
+                                            <div class="text-xl select-none transition-opacity duration-200 ${isUserSam ? "opacity-100" : "opacity-15"}" title="SAM">🛡️</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <button class="text-white text-2xl font-bold hover:text-tonique transition px-2 tracking-widest active:scale-90">•••</button>
+                            </li>
+                        `;
+                    })
+                    .join("");
+            }
+
+            function renderFriendsAccordion(filterQuery = "") {
+                if (!friendsListEl) return;
+
+                let invitableFriends = myFriends.filter(
+                    (friend) => !participants.some((p) => p.id === friend.id),
+                );
+
+                if (filterQuery) {
+                    invitableFriends = invitableFriends.filter((friend) => {
+                        const name = (
+                            friend.tag ||
+                            friend.username ||
+                            ""
+                        ).toLowerCase();
+                        return name.includes(filterQuery.toLowerCase());
+                    });
+                }
+
+                if (invitableFriends.length === 0) {
+                    friendsListEl.innerHTML = `<li class="text-gray-400 text-center italic py-3 text-sm">Aucun ami disponible</li>`;
+                    return;
+                }
+
+                friendsListEl.innerHTML = invitableFriends
+                    .map(
+                        (friend) => `
+                        <li class="flex items-center justify-between bg-white/5 hover:bg-white/10 p-3 rounded-xl transition">
+                            <span class="text-white font-bold">${friend.tag || friend.username}</span>
+                            <button 
+                                data-friend-id="${friend.id}"
+                                class="add-friend-btn action-btn text-white font-semibold"
+                            >
+                                Ajouter
+                            </button>
+                        </li>
+                    `,
+                    )
+                    .join("");
+
+                document.querySelectorAll(".add-friend-btn").forEach((btn) => {
+                    btn.addEventListener("click", async (e) => {
+                        const target = e.currentTarget as HTMLButtonElement;
+                        const friendId = target.getAttribute("data-friend-id");
+                        if (!friendId || !id) return;
+
+                        try {
+                            target.setAttribute("disabled", "true");
+                            target.textContent = "...";
+
+                            const newParticipant = await addParticipantToEvent(
+                                id,
+                                friendId,
+                            );
+
+                            participants.push(newParticipant);
+                            renderParticipants();
+
+                            if (searchFriendsInput)
+                                searchFriendsInput.value = "";
+                            renderFriendsAccordion();
+                        } catch (err: any) {
+                            console.error(err);
+                            alert("Impossible d'ajouter cet ami à la soirée.");
+                            target.removeAttribute("disabled");
+                            target.textContent = "Ajouter";
+                        }
+                    });
+                });
+            }
+
+            renderParticipants();
+            renderFriendsAccordion();
+
+            const openAccordion = () => {
+                accordionContent?.classList.remove("hidden");
+                accordionArrow?.classList.add("rotate-180");
+            };
+
+            searchFriendsInput?.addEventListener("focus", openAccordion);
+            searchFriendsInput?.addEventListener("click", openAccordion);
+
+            searchFriendsInput?.addEventListener("input", (e) => {
+                openAccordion();
+                const target = e.target as HTMLInputElement;
+                renderFriendsAccordion(target.value.trim());
+            });
+
+            document.addEventListener("click", (e) => {
+                const target = e.target as HTMLElement;
+                if (
+                    !searchFriendsInput?.contains(target) &&
+                    !accordionContent?.contains(target)
+                ) {
+                    accordionContent?.classList.add("hidden");
+                    accordionArrow?.classList.remove("rotate-180");
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            window.location.href = "/404";
+        }
+    }
+
+    init();
+</script>

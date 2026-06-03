@@ -1,9 +1,22 @@
 import PocketBase from 'pocketbase';
-const pb = new PocketBase('http://127.0.0.1:8090');
+export const pb = new PocketBase('http://127.0.0.1:8090');
 
 export async function getUser(id) {
-    const result = await pb.collection('users').getOne(id);
-    return result;
+    try {
+        const result = await pb.collection('users').getOne(id);
+        return result;
+    } catch (err) {
+        throw err;
+    }
+}
+
+export async function getFriendList(id) {
+    try {
+        const result = await pb.collection('users').getOne(id, { expand: 'friends' });
+        return result.expand?.friends;
+    } catch (err) {
+        throw err;
+    }
 }
 
 export async function getUserbyTag(tag) {
@@ -16,6 +29,40 @@ export async function getUserbyTag(tag) {
         }
         throw error;
     }
+}
+
+export async function getEvent(id) {
+    try {
+        const result = await pb.collection('events').getOne(id, {
+            expand: 'bars,members',
+        });
+
+        return result;
+    } catch (err) {
+        console.error("Erreur lors de la récupération de l'événement:", err);
+        throw err;
+    }
+}
+
+export async function addParticipantToEvent(eventId, usernameOrEmail) {
+    const user = await pb
+        .collection("users")
+        .getFirstListItem(`username="${usernameOrEmail}" || email="${usernameOrEmail}"`);
+
+    const soiree = await pb.collection("events").getOne(eventId);
+    const currentParticipantIds = soiree.participants || [];
+
+    if (currentParticipantIds.includes(user.id)) {
+        throw new Error("already_in_event");
+    }
+
+    const updatedIds = [...currentParticipantIds, user.id];
+
+    await pb.collection("events").update(eventId, {
+        participants: updatedIds,
+    });
+
+    return user;
 }
 
 export async function Userauth(login, mdp) {
@@ -54,9 +101,8 @@ export async function createUser(email, password, passwordConfirm, name, prename
             "pseudo": pseudo,
             "born_date": date,
             "tag": tag,
-            "emailConf": 'privee',
             "nameConf": 'public',
-            "events": 'amis',
+            "eventsConf": 'amis',
 
         };
         const record = await pb.collection('users').create(data);
@@ -90,7 +136,50 @@ export async function updateUserInfo(data) {
         throw error;
     }
 }
+export async function addFriendID(receiverTagId) {
+    const sendBy = pb.authStore.record;
+    if (!sendBy) throw new Error("Non connecté");
 
+    let sendTo;
+    try {
+        sendTo = await pb.collection('users').getOne(receiverTagId);
+    } catch (err) {
+        throw new Error("Utilisateur introuvable");
+    }
+
+    if (sendTo.id === sendBy.id) {
+        throw new Error("Autiste de merde");
+    }
+
+    const hisReceiveRequests = sendTo.receiveFriendRequest || [];
+    const hisFriends = sendTo.friends || [];
+    const myReceiveRequests = sendBy.receiveFriendRequest || [];
+
+    if (hisReceiveRequests.includes(sendBy.id)) {
+        throw new Error("Demande déjà envoyée !");
+    }
+
+    if (hisFriends.includes(sendBy.id)) {
+        throw new Error("Déjà amis !");
+    }
+
+    if (myReceiveRequests.includes(sendTo.id)) {
+        await pb.collection('users').update(sendBy.id, {
+            "friends+": sendTo.id,
+            "receiveFriendRequest-": sendTo.id
+        });
+        await pb.collection('users').update(sendTo.id, {
+            "friends+": sendBy.id
+        });
+        return "Amis ajoutés";
+    }
+
+    await pb.collection('users').update(sendTo.id, {
+        "receiveFriendRequest+": sendBy.id
+    });
+
+    return "Demande envoyée";
+}
 export async function addFriend(receiverTag) {
     const sendBy = pb.authStore.record;
     const TAG_REGEX = /^[^#]+#\d{4}$/;
@@ -147,7 +236,7 @@ export async function getFriends() {
     };
 }
 
-export async function deleteFriends(targetId) {
+export async function deleteFriend(targetId) {
     const currentUser = pb.authStore.record;
     if (!currentUser || !targetId || currentUser.id === targetId) {
         throw new Error("Opération de suppression invalide");
@@ -233,4 +322,59 @@ export async function addBar(barData) {
         console.error("Erreur PocketBase create:", error);
         throw new Error(error.message);
     }
+}
+export async function createEvent({ bars }, leader) {
+    if (!bars || !Array.isArray(bars) || bars.length === 0) {
+        throw new Error("Aucun bar sélectionné");
+    }
+
+    const eventdata = {
+        bars: bars,
+        leader,
+        multi_bar: (bars.length > 1) ? true : false,
+    };
+
+    try {
+        const event = await pb.collection('events').create(eventdata);
+
+        const userData = {
+            "leader_of+": event.id
+        }
+        return { userData, event };
+
+    } catch (error) {
+        if (error.data && error.data.data) {
+            console.error("Détails de l'erreur PocketBase :", error.data.data);
+            const firstErrorKey = Object.keys(error.data.data)[0];
+            const firstErrorMessage = error.data.data[firstErrorKey].message;
+            throw new Error(`Erreur sur le champ '${firstErrorKey}' : ${firstErrorMessage}`);
+        }
+        throw new Error(error.message || "Impossible de créer l'événement");
+    }
+}
+
+export async function updateEventTitle(eventId, newTitle) {
+    const user = pb.authStore.record;
+    if (!user) throw new Error("Non connecté");
+
+    if (!newTitle || newTitle.trim() === "") {
+        throw new Error("Le titre ne peut pas être vide");
+    }
+
+    return await pb.collection("events").update(eventId, {
+        name: newTitle.trim()
+    });
+}
+
+export async function updateEventDate(eventId, newDate) {
+    const user = pb.authStore.record;
+    if (!user) throw new Error("Non connecté");
+
+    if (!newDate) {
+        throw new Error("La date ne peut pas être vide");
+    }
+
+    return await pb.collection("events").update(eventId, {
+        date: newDate
+    });
 }

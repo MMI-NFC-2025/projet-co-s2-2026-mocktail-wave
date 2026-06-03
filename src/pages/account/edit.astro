@@ -107,31 +107,6 @@ import editicon from "../../assets/icons/neo_edit.svg";
                             >Amis seulement</option
                         >
                     </select>
-
-                    <label class="text-tonique font-semibold" for="emailConf"
-                        >Mon email :</label
-                    >
-                    <select
-                        name="emailConf"
-                        id="emailConf"
-                        class="rounded-md bg-white/20 text-white px-2 py-1"
-                    >
-                        <option
-                            value="privee"
-                            class="text-xs font-medium text-black"
-                            >Privée</option
-                        >
-                        <option
-                            value="public"
-                            class="text-xs font-medium text-black"
-                            >Public</option
-                        >
-                        <option
-                            value="amis"
-                            class="text-xs font-medium text-black"
-                            >Amis seulement</option
-                        >
-                    </select>
                 </div>
             </div>
 
@@ -146,11 +121,7 @@ import editicon from "../../assets/icons/neo_edit.svg";
 </Layout>
 
 <script>
-    import {
-        isLogged,
-        logout,
-        updateUserInfo,
-    } from "../../../backend/backend.mjs";
+    import { isLogged, updateUserInfo } from "../../../backend/backend.mjs";
 
     async function init() {
         const user = await isLogged();
@@ -165,14 +136,12 @@ import editicon from "../../assets/icons/neo_edit.svg";
         const prename = document.querySelector("#prename");
         const name = document.querySelector("#name");
         const email = document.querySelector("#email");
-        const emailConf = document.querySelector("#emailConf");
         const nameConf = document.querySelector("#nameConf");
         const eventsConf = document.querySelector("#eventsConf");
         if (prename && name && email && emailConf && nameConf && eventsConf) {
             prename.value = user.prename;
             name.value = user.name;
             email.value = user.email;
-            emailConf.value = user.emailConf;
             nameConf.value = user.nameConf;
             eventsConf.value = user.eventsConf;
         }
@@ -184,7 +153,6 @@ import editicon from "../../assets/icons/neo_edit.svg";
                 prename: prename.value,
                 name: name.value,
                 email: email.value,
-                emailVisibility: emailConf.value,
                 NameVisibility: nameConf.value,
                 eventsVisibility: eventsConf.value,
             };

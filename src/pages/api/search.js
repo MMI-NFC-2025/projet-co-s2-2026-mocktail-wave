@@ -1,4 +1,3 @@
-import { barExistsByOSMID } from '../../../backend/backend.mjs';
 export const GET = async ({ url }) => {
     try {
         const query = url.searchParams.get("q");
@@ -6,7 +5,6 @@ export const GET = async ({ url }) => {
 
         const searchLower = query.toLowerCase();
 
-        // 1. Géocodage (on cible le Doubs)
         const geoRes = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Doubs, France")}`,
             { headers: { 'User-Agent': 'MonAppDeBarsAstro/1.1 (mael.brungard@gmail.com)' } }
@@ -17,7 +15,6 @@ export const GET = async ({ url }) => {
 
         const { lat, lon } = geoData[0];
 
-        // 2. Appel Overpass
         const overpassQuery = `
             [out:json];
             area["ref"="25"]->.departement;
@@ -36,7 +33,6 @@ export const GET = async ({ url }) => {
 
         const data = await response.json();
 
-        // 3. Formatage et Tri par Pertinence
         const bars = (data.elements || [])
             .filter(item => item.tags.name)
             .map(item => {
