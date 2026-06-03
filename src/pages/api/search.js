@@ -46,7 +46,7 @@ export const GET = async ({ url }) => {
                 return {
                     id: item.id.toString(),
                     name: name,
-                    imageUrl: "http://localhost:4321/favicon.svg",
+                    imageUrl: "https://mocktailwave.telmane.fr/favicon.svg",
                     themes: "chill",
                     lat: item.lat,
                     lng: item.lon,

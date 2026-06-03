@@ -7,12 +7,12 @@ import profileImage from "../assets/icons/profile.svg";
 import shopImage from "../assets/icons/cart.svg";
 ---
 
-<header class="fixed w-full right-0 top-5 z-1000">
+<header class="fixed w-fit right-0 top-5 z-1000">
     <div
         class="bg-brand-dark/20 backdrop-blur overflow-hidden rounded-full shadow shadow-md flex items-center px-7 py-4"
     >
         <ul
-            class="flex items-center w-full justify-between overflow-hidden header__content"
+            class="flex items-center w-0 justify-between overflow-hidden header__content"
         >
             <li>
                 <a
@@ -59,10 +59,7 @@ import shopImage from "../assets/icons/cart.svg";
                 </a>
             </li>
         </ul>
-        <button
-            class="menu-btn w-6 flex flex-col gap-2 ml-7"
-            aria-expanded="false"
-        >
+        <button class="menu-btn w-6 flex flex-col gap-2" aria-expanded="false">
             <span class="h-[2px] bg-white w-full"></span>
             <span class="h-[2px] bg-white w-full"></span>
             <span class="h-[2px] bg-white w-full"></span>

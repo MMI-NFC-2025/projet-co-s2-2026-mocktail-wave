@@ -1,5 +1,5 @@
 import PocketBase from 'pocketbase';
-export const pb = new PocketBase('http://127.0.0.1:8090');
+export const pb = new PocketBase('https://mocktailwave.taverne-etudiante.fr');
 
 export async function getUser(id) {
     try {
@@ -433,4 +433,185 @@ export async function setEventDateToNow(eventId) {
         console.error("Erreur dans setEventDateToNow :", error);
         throw error;
     }
+}
+
+export async function updateClassement(eventId) {
+    // 1. récupérer event
+    const event = await pb.collection("events").getOne(eventId, {
+        expand: "members"
+    });
+
+    if (!event) throw new Error("Event introuvable");
+
+    // 2. récupérer classement
+    let classement;
+
+    const existing = await pb.collection("classements").getList(1, 1, {
+        filter: `event = "${eventId}"`
+    });
+
+    if (existing.items.length === 0) {
+        const members = event.expand?.members || [];
+
+        const users = {};
+
+        members.forEach((u) => {
+            users[u.id] = {
+                points: 0,
+                done: 0,
+                last_challenge: null,
+                cache_chrono: null,
+                current_challenge: null,
+                done_challenges: []
+            };
+        });
+
+        classement = await pb.collection("classements").create({
+            event: eventId,
+            users
+        });
+        await pb.collection("events").update(eventId, {
+            classement: classement.id
+        });
+    } else {
+        classement = existing.items[0];
+    }
+
+    // 3. challenges
+    const challenges = await pb.collection("challenges").getFullList();
+
+    const TWO_HOURS = 1000 * 60 * 60 * 2;
+    const now = Date.now();
+
+    const users = classement.users || {};
+
+    for (const userId in users) {
+        const user = users[userId];
+
+        const last = user.last_challenge
+            ? new Date(user.last_challenge).getTime()
+            : 0;
+
+        const needNew = !user.last_challenge || now - last > TWO_HOURS;
+
+        if (needNew) {
+            const available = challenges.filter(
+                (c) => !user.done_challenges.includes(c.id)
+            );
+
+            const pool = available.length ? available : challenges;
+
+            const random = pool[Math.floor(Math.random() * pool.length)];
+
+            user.current_challenge = random.id;
+            user.last_challenge = new Date().toISOString();
+        }
+    }
+
+    // 4. update classement
+    await pb.collection("classements").update(classement.id, {
+        users
+    });
+
+    return classement;
+}
+
+export async function validateChallenge(eventId) {
+    const user = await isLogged();
+    if (!user) throw new Error("Not logged in");
+
+    const res = await pb.collection("classements").getFirstListItem(
+        `event="${eventId}"`
+    );
+
+    const classement = res;
+    const userData = classement.users?.[user.id];
+
+    if (!userData) {
+        throw new Error("User not in event");
+    }
+
+    if (!userData.current_challenge) {
+        throw new Error("No active challenge");
+    }
+
+    const now = Date.now();
+    const last = userData.cache_chrono
+        ? new Date(userData.cache_chrono).getTime()
+        : 0;
+
+    const cooldown = 2 * 60 * 60 * 1000;
+    const challengeEnd = last + cooldown;
+
+    const gracePeriod = 20 * 60 * 1000;
+
+    let gainedPoints = 1;
+    if (now <= challengeEnd + gracePeriod) {
+        gainedPoints = 2;
+    }
+
+    userData.done = (userData.done || 0) + 1;
+    userData.points = (userData.points || 0) + gainedPoints;
+    userData.cache_chrono = new Date().toISOString();
+
+    userData.done_challenges = [
+        ...(userData.done_challenges || []),
+        userData.current_challenge,
+    ];
+
+    userData.last_challenge = new Date().toISOString();
+    userData.current_challenge = null;
+
+    await pb.collection("classements").update(classement.id, {
+        users: classement.users,
+    });
+
+    return { success: true, gainedPoints };
+}
+
+export async function startEvent(eventId) {
+    const event = await pb.collection("events").getOne(eventId);
+
+    if (!event) throw new Error("Event introuvable");
+
+    await pb.collection("events").update(eventId, {
+        status: "ongoing",
+        started_at: new Date().toISOString(),
+    });
+
+    // 2. créer classement si besoin
+    await updateClassement(eventId);
+
+    return true;
+}
+
+export async function loadMyChallenge(id, currentUser) {
+    const classement = await pb
+        .collection("classements")
+        .getFirstListItem(`event="${id}"`);
+    const me = classement?.users?.[currentUser.id];
+
+    if (!me?.current_challenge) return null;
+
+    return await pb
+        .collection("challenges")
+        .getOne(me.current_challenge);
+}
+
+export async function getClassement(eventId) {
+    return pb
+        .collection("classements")
+        .getFirstListItem(`event="${eventId}"`);
+}
+
+export async function subscribe(id, end) {
+    const sub = await pb.collection("abonnements").create({
+        user: id,
+        subEnd: end,
+    });
+    const user = await pb.collection('users').update(id, {
+        sub: 'vkvrhdae8d3veu3',
+        endSub: sub.id,
+    });
+    return user;
 }

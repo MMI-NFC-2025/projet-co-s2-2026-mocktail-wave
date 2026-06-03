@@ -8,27 +8,45 @@ import editicon from "../../assets/icons/neo_edit.svg";
 <Layout title="Mon Compte">
     <div class="flex flex-col gap-5">
         <Image src={hero} alt="Hero Image" class="hero" />
-        <div class="p-5">
-            <h1 id="profile-tag" class="neo-title text-3xl text-center">
-                Chargement...
-            </h1>
-            <p class="">
-                <a
-                    href="/account/edit"
-                    class="flex items-center gap-2 font-semibold mb-2 text-tonique justify-center"
+        <div class="p-5 flex justify-between relative">
+            <div class="relative w-full flex flex-col justify-between">
+                <h1 id="profile-tag" class="neo-title text-3xl text-center">
+                    Chargement...
+                </h1>
+                <p class="">
+                    <a
+                        href="/account/edit"
+                        class="flex items-center gap-2 font-semibold mb-2 text-tonique justify-center"
+                    >
+                        Modifier le profil
+                        <span><Image src={editicon} alt="Editer" /></span>
+                    </a>
+                </p>
+                <button
+                    id="logout-btn"
+                    class="block mx-auto text-red-500 text-sm underline"
+                    >Se déconnecter</button
                 >
-                    Modifier le profil
-                    <span><Image src={editicon} alt="Editer" /></span>
-                </a>
-            </p>
+            </div>
             <button
-                id="logout-btn"
-                class="block mx-auto text-red-500 text-sm underline mb-5"
-                >Se déconnecter</button
+                id="sub-btn"
+                class="flex flex-col hover:opacity-80 transition-opacity"
             >
-            <div class="separator"></div>
+                <img
+                    id="sub-img"
+                    src="/nosub.svg"
+                    alt="Non abonné"
+                    class="mx-auto flex-1 opacity-50 object-contain transition-opacity"
+                />
+                <p
+                    id="sub-text"
+                    class="text-center text-tonique/75 font-semibold transition-colors"
+                >
+                    Mocktail+
+                </p>
+            </button>
         </div>
-
+        <div class="separator"></div>
         <div class="p-5">
             <h2 class="neo-title text-3xl text-center">Vous participez à</h2>
             <ul id="event-list" class="text-center mt-4">
@@ -115,7 +133,50 @@ import editicon from "../../assets/icons/neo_edit.svg";
             eventList.innerHTML =
                 '<li class="text-red-500">Erreur lors de la récupération des événements</li>';
         }
-    }
+        const subBtn = document.getElementById("sub-btn");
+        const subImg = document.getElementById("sub-img");
+        const subText = document.getElementById("sub-text");
 
+        if (user.sub) {
+            subImg.src = "/sub.svg";
+            subImg.alt = "Abonné Mocktail+";
+            subImg.classList.remove("opacity-50");
+
+            subText.classList.remove("text-tonique/75");
+            subText.classList.add("text-tonique");
+
+            subBtn.disabled = true;
+            subBtn.classList.remove("hover:opacity-80");
+            subBtn.classList.add("cursor-default");
+        } else {
+            subBtn.addEventListener("click", async () => {
+                try {
+                    subBtn.disabled = true;
+                    subImg.classList.add("animate-pulse");
+
+                    const response = await fetch("/api/stripe/checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: user.id }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.url) {
+                        // Redirection vers Stripe !
+                        window.location.href = data.url;
+                    } else {
+                        console.error("Erreur Stripe:", data.error);
+                        subBtn.disabled = false;
+                        subImg.classList.remove("animate-pulse");
+                    }
+                } catch (error) {
+                    console.error("Erreur réseau:", error);
+                    subBtn.disabled = false;
+                    subImg.classList.remove("animate-pulse");
+                }
+            });
+        }
+    }
     init();
 </script>
