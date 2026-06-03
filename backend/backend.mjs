@@ -44,25 +44,21 @@ export async function getEvent(id) {
     }
 }
 
-export async function addParticipantToEvent(eventId, usernameOrEmail) {
-    const user = await pb
-        .collection("users")
-        .getFirstListItem(`username="${usernameOrEmail}" || email="${usernameOrEmail}"`);
-
+export async function addParticipantToEvent(eventId, userId) {
     const soiree = await pb.collection("events").getOne(eventId);
-    const currentParticipantIds = soiree.participants || [];
+    const currentParticipantIds = soiree.members || [];
 
-    if (currentParticipantIds.includes(user.id)) {
+    if (currentParticipantIds.includes(userId)) {
         throw new Error("already_in_event");
     }
 
-    const updatedIds = [...currentParticipantIds, user.id];
+    const updatedIds = [...currentParticipantIds, userId];
 
-    await pb.collection("events").update(eventId, {
-        participants: updatedIds,
+    const event = await pb.collection("events").update(eventId, {
+        members: updatedIds,
     });
 
-    return user;
+    return event;
 }
 
 export async function Userauth(login, mdp) {
@@ -331,6 +327,8 @@ export async function createEvent({ bars }, leader) {
     const eventdata = {
         bars: bars,
         leader,
+        "members+": leader,
+        sam: leader,
         multi_bar: (bars.length > 1) ? true : false,
     };
 
@@ -377,4 +375,62 @@ export async function updateEventDate(eventId, newDate) {
     return await pb.collection("events").update(eventId, {
         date: newDate
     });
+}
+export async function updateEventSam(eventId, userId) {
+    const user = pb.authStore.record;
+    if (!user) throw new Error("Non connecté");
+
+    try {
+        return await pb.collection("events").update(eventId, {
+            sam: userId
+        });
+    } catch (err) {
+        console.error("Erreur updateEventSam:", err);
+        throw err;
+    }
+}
+
+export async function updateEventLeader(eventId, userId) {
+    const user = pb.authStore.record;
+    if (!user) throw new Error("Non connecté");
+
+    try {
+        return await pb.collection("events").update(eventId, {
+            leader: userId
+        });
+    } catch (err) {
+        console.error("Erreur updateEventLeader:", err);
+        throw err;
+    }
+}
+
+export async function removeParticipantFromEvent(eventId, userId) {
+    const user = pb.authStore.record;
+    if (!user) throw new Error("Non connecté");
+
+    try {
+        return await pb.collection("events").update(eventId, {
+            "members-": userId
+        });
+    } catch (err) {
+        console.error("Erreur removeParticipantFromEvent:", err);
+        throw err;
+    }
+}
+
+export async function setEventDateToNow(eventId) {
+    if (!eventId) {
+        throw new Error("L'identifiant de l'événement est requis.");
+    }
+
+    try {
+        const nowIsoString = new Date().toISOString();
+
+        const updatedEvent = await updateEventDate(eventId, nowIsoString);
+
+        return updatedEvent;
+    } catch (error) {
+        console.error("Erreur dans setEventDateToNow :", error);
+        throw error;
+    }
 }

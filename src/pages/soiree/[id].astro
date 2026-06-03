@@ -3,22 +3,29 @@ import Image from "astro/components/Image.astro";
 import hero from "../../assets/images/event_hero.avif";
 import Layout from "../../layouts/Layout.astro";
 import editIcon from "../../assets/icons/edit.svg";
-import addIcon from "../../assets/icons/add.svg";
 
 const { id } = Astro.params;
 ---
 
 <Layout>
-    <div id="event-page-container" data-id={id} class="flex flex-col gap-5">
-        <Image src={hero} alt="Hero Image" class="hero w-full object-cover" />
+    <div
+        id="event-page-container"
+        data-id={id}
+        class="flex flex-col gap-6 pb-12"
+    >
+        <div class="relative w-full overflow-hidden max-h-56 shadow-lg">
+            <Image
+                src={hero}
+                alt="Hero Image"
+                class="w-full h-full object-cover opacity-80"
+            />
+        </div>
 
-        <div class="p-5 text-center">
-            <div
-                class="flex items-center justify-center gap-3 max-w-md mx-auto"
-            >
+        <div class="px-5 text-center max-w-md mx-auto w-full">
+            <div class="flex items-center justify-center gap-3 w-full mt-7">
                 <h1
                     id="event-title"
-                    class="neo-title text-3xl font-bold uppercase tracking-wide truncate"
+                    class="neo-title text-3xl font-extrabold tracking-wide text-white uppercase truncate max-w-[80%]"
                 >
                     Analyse en cours...
                 </h1>
@@ -26,43 +33,59 @@ const { id } = Astro.params;
                 <input
                     type="text"
                     id="edit-title-input"
-                    class="hidden text-3xl font-bold bebas tracking-wide bg-[#2D1B4E] border-b-2 border-tonique text-white text-center focus:outline-none rounded w-full px-2"
+                    class="hidden text-2xl font-bold tracking-wide bg-dominante border-b-2 border-tonique text-white text-center focus:outline-none rounded w-full px-2 py-1"
                 />
 
                 <button
                     id="edit-title-btn"
                     class="text-white hover:text-tonique transition hidden shrink-0"
                 >
-                    <Image src={editIcon} alt="Modifier" id="icon-pencil" />
+                    <Image
+                        src={editIcon}
+                        alt="Modifier"
+                        id="icon-pencil"
+                        class="w-5 h-5"
+                    />
                 </button>
 
                 <button
                     id="icon-check"
-                    class="bg-green-400 px-3 py-1 rounded-xl font-bold hidden text-black text-sm shrink-0 hover:bg-green-300 transition"
+                    class="bg-green-400 px-3 py-1.5 rounded-xl font-bold hidden text-black text-sm shrink-0 hover:bg-green-300 transition"
                 >
                     Confirmer
                 </button>
             </div>
 
-            <div class="flex justify-center gap-4 mt-3">
+            <div class="flex justify-center gap-4 mt-4">
                 <span
                     id="badge-leader"
-                    class="text-3xl hidden"
-                    title="Créateur de la soirée">👑</span
+                    class="hidden w-10 h-10 transition-transform hover:scale-105"
+                    title="Créateur de la soirée"
                 >
+                    <img
+                        src="/leader.svg"
+                        alt="leader icon"
+                        class="w-full h-full"
+                    />
+                </span>
                 <span
                     id="badge-sam"
-                    class="text-3xl hidden"
-                    title="SAM (Capitaine de soirée)">🛡️</span
+                    class="hidden w-10 h-10 transition-transform hover:scale-105"
+                    title="SAM (Capitaine de soirée)"
                 >
+                    <img src="/sam.svg" alt="sam icon" class="w-full h-full" />
+                </span>
             </div>
 
-            <div class="mt-4 flex flex-col gap-3 items-center">
+            <div class="mt-6 flex flex-col gap-4 items-center p-4 rounded-2xl">
                 <div
-                    class="gradient font-semibold flex items-center justify-center gap-2"
+                    id="countdown-container"
+                    class="font-semibold flex items-center justify-center gap-2 text-base text-gray-200 gradient"
                 >
                     <span id="countdown-label">Début dans :</span>
-                    <span id="countdown">XX:XX:XX</span>
+                    <span id="countdown" class="text-white font-bold"
+                        >XX:XX:XX</span
+                    >
 
                     <button
                         id="edit-date-btn"
@@ -78,42 +101,86 @@ const { id } = Astro.params;
 
                 <div
                     id="date-picker-container"
-                    class="hidden flex items-center gap-2 max-w-xs mx-auto"
+                    class="hidden flex items-center gap-2 w-full max-w-xs mx-auto"
                 >
                     <input
                         type="datetime-local"
                         id="edit-date-input"
-                        class="bg-[#2D1B4E] border-2 border-tonique text-white px-3 py-1.5 rounded-xl font-semibold text-sm focus:outline-none"
+                        class="bg-dominante w-full border-2 border-tonique text-white px-3 py-2 rounded-xl font-semibold text-sm focus:outline-none"
                     />
                     <button
                         id="confirm-date-btn"
-                        class="bg-green-400 text-black px-3 py-1.5 rounded-xl font-bold text-sm hover:bg-green-300 transition"
+                        class="bg-green-400 text-black px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-300 transition shrink-0"
                     >
                         Ok
                     </button>
                 </div>
 
-                <button class="action-btn font-bold">
+                <button
+                    id="start-event-btn"
+                    class="action-btn font-bold shadow-md text-sm uppercase"
+                >
                     Que la soirée commence !
                 </button>
             </div>
+
             <div class="separator mt-6"></div>
         </div>
 
-        <div id="bars-container" class="px-5 max-w-md mx-auto w-full"></div>
+        <div class="px-5 max-w-md mx-auto w-full">
+            <div
+                class="bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative h-72 w-full border border-white/10 mt-5"
+            >
+                <div id="map" class="h-full w-full hidden"></div>
+            </div>
 
-        <div class="p-5 max-w-md mx-auto w-full">
-            <h2 class="neo-title text-3xl mb-4">Participants</h2>
+            <div
+                id="map-legend"
+                class="hidden flex justify-between px-2 mt-3 font-bold text-gray-300 py-2 rounded-xl"
+            >
+                <div class="flex items-center gap-1.5">
+                    <span
+                        class="w-2.5 h-2.5 rounded-full bg-tonique inline-block"
+                    ></span>
+                    <span>Dansante</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span
+                        class="w-2.5 h-2.5 rounded-full bg-secondaire-dark inline-block"
+                    ></span>
+                    <span>Chill</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span
+                        class="w-2.5 h-2.5 rounded-full bg-secondaire inline-block"
+                    ></span>
+                    <span>Concept</span>
+                </div>
+            </div>
+        </div>
 
-            <ul id="participants-list" class="flex flex-col gap-3 mb-5"></ul>
+        <div
+            id="bars-container"
+            class="px-5 mt-5 max-w-md mx-auto w-full flex flex-col gap-4"
+        >
+        </div>
 
-            <div class="relative w-full max-w-sm mx-auto">
+        <div class="p-5 max-w-md mx-auto w-full mt-4">
+            <h2
+                class="neo-title text-2xl font-bold mb-4 uppercase tracking-wider text-gray-200"
+            >
+                Participants
+            </h2>
+
+            <ul id="participants-list" class="flex flex-col gap-3 mb-6"></ul>
+
+            <div class="relative w-full">
                 <div class="relative w-full">
                     <input
                         type="text"
                         id="search-friends-input"
                         placeholder="Rechercher un ami à inviter..."
-                        class="w-full bg-white text-gray-900 px-4 py-3 pr-12 rounded-xl font-medium placeholder-gray-400 focus:outline-none shadow-md"
+                        class="w-full bg-white text-gray-900 px-4 py-3 pr-12 rounded-xl font-medium placeholder-gray-400 focus:outline-none shadow-md text-sm"
                         autocomplete="off"
                     />
                     <div
@@ -121,18 +188,52 @@ const { id } = Astro.params;
                     >
                         <span
                             id="accordion-arrow"
-                            class="transition-transform duration-300 text-gray-400 inline-block text-xs"
-                            >▼</span
+                            class="transition-transform duration-300 text-gray-400 inline-block text-[10px]"
                         >
+                            ▼
+                        </span>
                     </div>
                 </div>
 
                 <div
                     id="friends-accordion-content"
-                    class="hidden absolute z-10 left-0 right-0 max-h-60 overflow-y-auto mt-2 bg-[#2D1B4E] border border-tonique/30 rounded-2xl p-3 shadow-xl flex flex-col gap-2"
+                    class="hidden absolute z-30 left-0 right-0 max-h-60 overflow-y-auto mt-2 bg-[#2D1B4E] border border-tonique/30 rounded-2xl p-3 shadow-2xl flex flex-col gap-2"
                 >
                     <ul id="friends-list" class="flex flex-col gap-2"></ul>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div
+        id="custom-confirm-modal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-200"
+    >
+        <div
+            class="bg-dominante border border-tonique/40 p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl transform scale-95 transition-transform duration-200"
+        >
+            <h3 id="modal-title" class="text-white text-xl font-bold mb-2">
+                Confirmation
+            </h3>
+            <p
+                id="modal-message"
+                class="text-gray-300 text-sm mb-6 leading-relaxed"
+            >
+                Êtes-vous sûr de vouloir effectuer cette action ?
+            </p>
+            <div class="flex gap-4 justify-center">
+                <button
+                    id="modal-cancel-btn"
+                    class="px-5 py-2.5 text-white rounded-xl font-semibold transition text-sm"
+                >
+                    Annuler
+                </button>
+                <button
+                    id="modal-confirm-btn"
+                    class="px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white rounded-xl font-bold transition text-sm"
+                >
+                    Confirmer
+                </button>
             </div>
         </div>
     </div>
@@ -144,12 +245,23 @@ const { id } = Astro.params;
         isLogged,
         updateEventTitle,
         updateEventDate,
+        setEventDateToNow,
         addParticipantToEvent,
         getFriendList,
+        updateEventLeader,
+        updateEventSam,
+        removeParticipantFromEvent,
     } from "../../../backend/backend.mjs";
 
+    // Variables globales
     let countdownInterval: number | undefined;
+    let map: any = null;
+    let routingControl: any = null;
+    let geoWatchId: number | null = null;
+    let barLatLon: [number, number] | null = null;
+    let currentUserPos: [number, number] | null = null;
 
+    // Compte à rebours
     function startCountdown(eventDateString: string) {
         const countdownEl = document.getElementById("countdown");
         const countdownLabel = document.getElementById("countdown-label");
@@ -192,6 +304,222 @@ const { id } = Astro.params;
         countdownInterval = setInterval(updateClock, 1000) as unknown as number;
     }
 
+    async function displayGPS(address: string, barName: string) {
+        const mapContainer = document.getElementById("map");
+        const legendContainer = document.getElementById("map-legend");
+        if (!mapContainer) return;
+
+        try {
+            // 1. Géocodage de l'adresse du bar via Nominatim
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
+            );
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                const barLat = parseFloat(data[0].lat);
+                const barLon = parseFloat(data[0].lon);
+
+                // Rendre visible la carte et la légende
+                mapContainer.classList.remove("hidden");
+                if (data.length > 1) {
+                    legendContainer?.classList.remove("hidden");
+                }
+
+                // 2. Chargement dynamique des CSS
+                if (!document.querySelector('link[href*="leaflet.css"]')) {
+                    const link = document.createElement("link");
+                    link.rel = "stylesheet";
+                    link.href =
+                        "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+                    document.head.appendChild(link);
+                }
+                if (
+                    !document.querySelector(
+                        'link[href*="leaflet-routing-machine"]',
+                    )
+                ) {
+                    const linkRouting = document.createElement("link");
+                    linkRouting.rel = "stylesheet";
+                    linkRouting.href =
+                        "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css";
+                    document.head.appendChild(linkRouting);
+                }
+
+                // 3. Chargement dynamique des Scripts JS
+                if (!(window as any).L) {
+                    await new Promise((resolve) => {
+                        const script = document.createElement("script");
+                        script.src =
+                            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+                        script.onload = resolve;
+                        document.head.appendChild(script);
+                    });
+                }
+                if (!(window as any).L.Routing) {
+                    await new Promise((resolve) => {
+                        const scriptRouting = document.createElement("script");
+                        scriptRouting.src =
+                            "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js";
+                        scriptRouting.onload = resolve;
+                        document.head.appendChild(scriptRouting);
+                    });
+                }
+
+                const L = (window as any).L;
+
+                // 4. Initialisation de la carte (On commence centré sur le bar par défaut)
+                if (!map) {
+                    map = L.map("map", {
+                        zoomControl: false, // On désactive les boutons +/- pour une UI plus épurée comme sur une app native
+                    }).setView([barLat, barLon], 16);
+
+                    L.tileLayer(
+                        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        {
+                            attribution: "© OpenStreetMap",
+                        },
+                    ).addTo(map);
+                }
+
+                // Icônes personnalisées épurées (Fini les gros marqueurs bleus cassés de Leaflet)
+                const userIcon = L.divIcon({
+                    html: `<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-md animate-pulse"></div>`,
+                    className: "custom-user-icon",
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8],
+                });
+
+                const barIcon = L.divIcon({
+                    html: `<div class="flex items-center justify-center w-8 h-8 bg-[#E2B714] text-white rounded-full shadow-lg border border-white font-bold text-sm">📍</div>`,
+                    className: "custom-bar-icon",
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                });
+
+                let isFirstLoad = true;
+
+                // 5. Tracking en TEMPS RÉEL (watchPosition) pour l'expérience GPS
+                if (navigator.geolocation) {
+                    if (geoWatchId)
+                        navigator.geolocation.clearWatch(geoWatchId);
+
+                    geoWatchId = navigator.geolocation.watchPosition(
+                        (position) => {
+                            const userLat = position.coords.latitude;
+                            const userLon = position.coords.longitude;
+                            currentUserPos = [userLat, userLon];
+
+                            // Si le système de routing existe déjà, on met juste à jour les points sans tout recréer
+                            if (routingControl) {
+                                routingControl.setWaypoints([
+                                    L.latLng(userLat, userLon),
+                                    L.latLng(barLat, barLon),
+                                ]);
+                            } else {
+                                // Premier calcul de l'itinéraire
+                                routingControl = L.Routing.control({
+                                    waypoints: [
+                                        L.latLng(userLat, userLon),
+                                        L.latLng(barLat, barLon),
+                                    ],
+                                    routeWhileDragging: false,
+                                    addWaypoints: false,
+                                    fitSelectedRoutes: false,
+                                    show: false,
+                                    collapsible: false,
+                                    lineOptions: {
+                                        styles: [
+                                            {
+                                                color: "#E2B714",
+                                                weight: 6,
+                                                opacity: 0.85,
+                                            },
+                                        ],
+                                    },
+                                    createMarker: function (
+                                        i: number,
+                                        waypoint: any,
+                                    ) {
+                                        if (i === 0) {
+                                            return L.marker(waypoint.latLng, {
+                                                icon: userIcon,
+                                            }).bindPopup("Tu es ici 📍");
+                                        } else {
+                                            return L.marker(waypoint.latLng, {
+                                                icon: barIcon,
+                                            })
+                                                .bindPopup(`<b>${barName}</b>`)
+                                                .openPopup();
+                                        }
+                                    },
+                                }).addTo(map);
+                            }
+
+                            if (isFirstLoad) {
+                                map.setView([userLat, userLon], 16);
+                                isFirstLoad = false;
+                            }
+                        },
+                        (error) => {
+                            console.warn(
+                                "Tracking GPS indisponible. Affichage du bar uniquement.",
+                            );
+                            L.marker([barLat, barLon], { icon: barIcon })
+                                .addTo(map)
+                                .bindPopup(`<b>${barName}</b><br>${address}`)
+                                .openPopup();
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0,
+                        },
+                    );
+                } else {
+                    L.marker([barLat, barLon], { icon: barIcon })
+                        .addTo(map)
+                        .bindPopup(`<b>${barName}</b>`)
+                        .openPopup();
+                }
+
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 250);
+            }
+        } catch (error) {
+            console.error("Erreur lors du calcul GPS :", error);
+        }
+    }
+
+    function setDestination(barLat: number, barLon: number) {
+        const L = (window as any).L;
+        if (!map || !currentUserPos) return;
+
+        barLatLon = [barLat, barLon];
+
+        if (routingControl) {
+            routingControl.setWaypoints([
+                L.latLng(currentUserPos[0], currentUserPos[1]),
+                L.latLng(barLat, barLatLon[1]),
+            ]);
+        }
+    }
+
+    async function geocode(address: string) {
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
+        );
+        const data = await res.json();
+        if (!data?.length) return null;
+
+        return {
+            lat: parseFloat(data[0].lat),
+            lon: parseFloat(data[0].lon),
+        };
+    }
+
+    // Initialisation
     async function init() {
         const container = document.getElementById("event-page-container");
         if (!container) return;
@@ -216,6 +544,9 @@ const { id } = Astro.params;
 
             const countdownEl = document.getElementById("countdown");
             const countdownLabel = document.getElementById("countdown-label");
+            const countdownContainer = document.getElementById(
+                "countdown-container",
+            );
             const editDateBtn = document.getElementById("edit-date-btn");
             const datePickerContainer = document.getElementById(
                 "date-picker-container",
@@ -224,6 +555,8 @@ const { id } = Astro.params;
                 "edit-date-input",
             ) as HTMLInputElement;
             const confirmDateBtn = document.getElementById("confirm-date-btn");
+
+            const startEventBtn = document.getElementById("start-event-btn");
 
             const isLeader = soiree.leader === currentUser.id;
             const isSam = soiree.sam === currentUser.id;
@@ -235,17 +568,76 @@ const { id } = Astro.params;
 
             if (isLeader) {
                 editBtn?.classList.remove("hidden");
+
                 document
                     .getElementById("badge-leader")
                     ?.classList.remove("hidden");
             }
+
             if (isSam) {
                 document
                     .getElementById("badge-sam")
                     ?.classList.remove("hidden");
             }
 
+            // Date de la soirée
             let initialDate = soiree.date || soiree.event_date;
+
+            const now = Date.now();
+            const isStarted = initialDate
+                ? new Date(initialDate).getTime() <= now
+                : false;
+
+            if (isLeader && startEventBtn) {
+                startEventBtn.classList.remove("hidden");
+
+                if (isStarted) {
+                    startEventBtn.textContent = "Fin de soirée !";
+
+                    countdownEl?.classList.add("hidden");
+                    countdownContainer?.classList.add("hidden");
+
+                    startEventBtn.addEventListener("click", async () => {
+                        const confirmed = await askConfirmation(
+                            "Fin de soirée",
+                            "Voulez-vous vraiment terminer cette soirée ?",
+                            true,
+                        );
+
+                        if (!confirmed) return;
+
+                        try {
+                            startEventBtn.setAttribute("disabled", "true");
+
+                            await endEvent(id);
+
+                            window.location.href = "/events";
+                        } catch (err) {
+                            console.error(err);
+                            alert("Impossible de terminer la soirée.");
+                            startEventBtn.removeAttribute("disabled");
+                        }
+                    });
+                } else {
+                    startEventBtn.textContent = "Que la soirée commence !";
+
+                    startEventBtn.addEventListener("click", async () => {
+                        try {
+                            startEventBtn.setAttribute("disabled", "true");
+
+                            await setEventDateToNow(id);
+
+                            window.location.reload();
+                        } catch (err) {
+                            console.error(err);
+                            alert(
+                                "Impossible de lancer la soirée immédiatement.",
+                            );
+                            startEventBtn.removeAttribute("disabled");
+                        }
+                    });
+                }
+            }
 
             if (initialDate) {
                 startCountdown(initialDate);
@@ -256,11 +648,7 @@ const { id } = Astro.params;
                     if (isLeader) {
                         countdownEl.textContent =
                             "Définir la date de la soirée";
-                        countdownEl.classList.add(
-                            "cursor-pointer",
-                            "underline",
-                            "text-amber-400",
-                        );
+                        countdownEl.classList.add("cursor-pointer");
                     } else {
                         countdownEl.textContent = "Date à définir";
                     }
@@ -311,11 +699,7 @@ const { id } = Astro.params;
                         if (countdownLabel)
                             countdownLabel.classList.remove("hidden");
                         editDateBtn?.classList.remove("hidden");
-                        countdownEl.classList.remove(
-                            "cursor-pointer",
-                            "underline",
-                            "text-amber-400",
-                        );
+                        countdownEl.classList.remove("cursor-pointer");
 
                         startCountdown(isoDate);
                     } catch (err) {
@@ -384,9 +768,15 @@ const { id } = Astro.params;
                 });
             }
 
-            // --- Section Bars ---
+            // Gestion des bars
             const barsContainer = document.getElementById("bars-container");
             const bars = soiree.expand?.bars || [];
+            const barsWithCoords = await Promise.all(
+                bars.map(async (bar) => {
+                    const coords = await geocode(bar.address);
+                    return { ...bar, coords };
+                }),
+            );
 
             if (barsContainer && bars.length > 0) {
                 if (bars.length === 1) {
@@ -400,41 +790,55 @@ const { id } = Astro.params;
                             </div>
                         </div>
                     `;
+                    if (bar.address && bar.name) {
+                        displayGPS(bar.address, bar.name);
+                    }
                 } else {
-                    const colors = [
-                        "bg-[#F37349]",
-                        "bg-[#E2B714]",
-                        "bg-[#E532A7]",
-                    ];
-                    const dotColors = [
-                        "bg-[#E532A7]",
-                        "bg-[#F37349]",
-                        "bg-[#E2B714]",
-                    ];
-
-                    const dotsHtml = `
-                        <div class="flex justify-center gap-12 mb-5">
-                            ${dotColors.map((dotColor) => `<span class="w-3.5 h-3.5 rounded-full ${dotColor} inline-block shadow-sm"></span>`).join("")}
-                        </div>
-                    `;
-
                     const listHtml = `
                         <div class="flex flex-col gap-4 max-w-sm mx-auto">
-                            ${bars
-                                .map((bar, index) => {
-                                    const currentColorClass =
-                                        colors[index % colors.length];
+                            ${barsWithCoords
+                                .map((bar) => {
+                                    let currentColorClass = "bg-secondaire";
+
+                                    if (bar.themes === "danse") {
+                                        currentColorClass = "bg-tonique";
+                                    } else if (bar.themes === "chill") {
+                                        currentColorClass =
+                                            "bg-secondaire-dark";
+                                    }
+
                                     return `
-                                    <div class="${currentColorClass} p-4 rounded-2xl shadow-lg text-white transition transform active:scale-95 cursor-pointer">
-                                        <h3 class="text-xl font-bold uppercase tracking-wide truncate">${bar.name || "Nom du bar"}</h3>
-                                        <p class="text-sm mt-0.5 opacity-90 font-medium truncate">Adresse : ${bar.address || "XX rue du XXXXX"}</p>
-                                    </div>
-                                `;
+                                        <div 
+                                            class="${currentColorClass} p-4 rounded-2xl shadow-lg text-white cursor-pointer"
+                                            data-lat="${bar.coords?.lat}"
+                                            data-lon="${bar.coords?.lon}"
+                                        >
+                                            <h3>${bar.name}</h3>
+                                            <p>${bar.address}</p>
+                                        </div>
+                                    `;
                                 })
                                 .join("")}
                         </div>
                     `;
-                    barsContainer.innerHTML = dotsHtml + listHtml;
+
+                    barsContainer.innerHTML = listHtml;
+                    barsContainer.addEventListener("click", (e) => {
+                        const target = e.target.closest("[data-lat]");
+                        if (!target) return;
+
+                        const lat = parseFloat(target.getAttribute("data-lat"));
+                        const lon = parseFloat(target.getAttribute("data-lon"));
+
+                        setDestination(lat, lon);
+                    });
+                    if (bars.length >= 1) {
+                        const firstBar = bars[0];
+
+                        if (firstBar.address && firstBar.name) {
+                            displayGPS(firstBar.address, firstBar.name);
+                        }
+                    }
                 }
             }
 
@@ -450,10 +854,76 @@ const { id } = Astro.params;
             const friendsListEl = document.getElementById("friends-list");
 
             const participants = soiree.expand?.members || [];
-
             const myFriends = await getFriendList(currentUser.id);
-            console.log(myFriends);
 
+            // Modale de confirmation
+            function askConfirmation(
+                title: string,
+                message: string,
+                isDanger = false,
+            ): Promise<boolean> {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById(
+                        "custom-confirm-modal",
+                    );
+                    const modalContent = modal?.querySelector("div");
+                    const modalTitle = document.getElementById("modal-title");
+                    const modalMessage =
+                        document.getElementById("modal-message");
+                    const confirmBtn =
+                        document.getElementById("modal-confirm-btn");
+                    const cancelBtn =
+                        document.getElementById("modal-cancel-btn");
+
+                    if (
+                        !modal ||
+                        !modalTitle ||
+                        !modalMessage ||
+                        !confirmBtn ||
+                        !cancelBtn
+                    ) {
+                        resolve(false);
+                        return;
+                    }
+
+                    modalTitle.textContent = title;
+                    modalMessage.textContent = message;
+
+                    if (isDanger) {
+                        confirmBtn.className =
+                            "px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white rounded-xl font-bold transition text-sm";
+                    } else {
+                        confirmBtn.className =
+                            "px-5 py-2.5 bg-green-400 hover:bg-green-300 text-black rounded-xl font-bold transition text-sm";
+                    }
+
+                    modal.classList.remove("hidden");
+                    setTimeout(
+                        () => modalContent?.classList.remove("scale-95"),
+                        10,
+                    );
+
+                    const cleanUp = (result: boolean) => {
+                        modalContent?.classList.add("scale-95");
+                        modal.classList.add("hidden");
+                        confirmBtn.removeEventListener("click", onConfirm);
+                        cancelBtn.removeEventListener("click", onCancel);
+                        resolve(result);
+                    };
+
+                    function onConfirm() {
+                        cleanUp(true);
+                    }
+                    function onCancel() {
+                        cleanUp(false);
+                    }
+
+                    confirmBtn.addEventListener("click", onConfirm);
+                    cancelBtn.addEventListener("click", onCancel);
+                });
+            }
+
+            // Gestion des participants
             function renderParticipants() {
                 if (!participantsList) return;
 
@@ -467,26 +937,123 @@ const { id } = Astro.params;
                         const isUserLeader = soiree.leader === user.id;
                         const isUserSam = soiree.sam === user.id;
 
+                        const showOptionsBtn = isLeader;
+                        const isMe = user.id === currentUser.id;
+
                         return `
-                            <li class="flex items-center justify-between gap-4 max-w-sm mx-auto w-full">
-                                <div class="flex-1 flex items-center justify-between page-btn font-semibold px-4 py-2 bg-white/5 rounded-xl border border-white/10 truncate">
-                                    <a href="/social/${user.id}" class="truncate hover:text-tonique transition flex-1 flex justify-center text-center">
-                                        <div class="flex-1">
-                                            ${user.tag} 
-                                        </div>                                       
-                                        <div class="flex items-center gap-2 shrink-0 ml-2">
-                                            <div class="text-xl select-none transition-opacity duration-200 ${isUserLeader ? "opacity-100" : "opacity-15"}" title="Créateur">👑</div>
-                                            <div class="text-xl select-none transition-opacity duration-200 ${isUserSam ? "opacity-100" : "opacity-15"}" title="SAM">🛡️</div>
-                                        </div>
-                                    </a>
-                                </div>
-                                <button class="text-white text-2xl font-bold hover:text-tonique transition px-2 tracking-widest active:scale-90">•••</button>
-                            </li>
-                        `;
+                <li class="relative flex items-center justify-between gap-4 max-w-sm mx-auto w-full">
+                    <div class="flex-1 flex items-center justify-between page-btn font-semibold px-4 py-2 bg-white/5 rounded-xl border border-white/10 truncate">
+                        <a href="/social/${user.id}" class="truncate hover:text-tonique transition flex-1 flex justify-center text-center">
+                            <div class="flex-1">
+                                ${user.tag} ${isMe ? " (Moi)" : ""}
+                            </div>                                     
+                            <div class="flex items-center gap-2 shrink-0 ml-2">
+                                <div class="text-xl select-none transition-opacity duration-200 ${isUserLeader ? "opacity-100" : "opacity-30"}" title="Créateur"><img src="/leader.svg" alt="leader icon"/></div>
+                                <div class="text-xl select-none transition-opacity duration-200 ${isUserSam ? "opacity-100" : "opacity-30"}" title="SAM"><img src="/sam.svg" alt="sam icon"/></div>
+                            </div>
+                        </a>
+                    </div>
+                    ${
+                        showOptionsBtn
+                            ? `
+                        <button data-user-id="${user.id}" class="participant-options-btn text-white text-2xl font-bold hover:text-tonique transition px-2 tracking-widest active:scale-90">•••</button>
+                        
+                        <div id="dropdown-${user.id}" class="hidden absolute right-0 top-12 z-20 bg-[#2D1B4E] border border-tonique/30 rounded-xl p-2 shadow-2xl flex flex-col gap-1 w-48 text-sm">
+                            <button data-action="set-sam" data-user-id="${user.id}" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-tonique transition flex items-center gap-2">Nommer SAM</button>
+                            
+                            ${
+                                !isMe
+                                    ? `
+                                <button data-action="set-leader" data-user-id="${user.id}" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-secondaire transition flex items-center gap-2">Nommer Créateur</button>
+                                <div class="border-t border-white/10 my-1"></div>
+                                <button data-action="kick" data-user-id="${user.id}" class="text-left px-3 py-2 rounded-lg hover:bg-red-500/20 text-red-400 transition flex items-center gap-2">Retirer de la soirée</button>
+                            `
+                                    : ""
+                            }
+                        </div>
+                    `
+                            : ""
+                    }
+                </li>
+            `;
                     })
                     .join("");
+
+                setupParticipantsEvents();
             }
 
+            function setupParticipantsEvents() {
+                document
+                    .querySelectorAll(".participant-options-btn")
+                    .forEach((btn) => {
+                        btn.addEventListener("click", (e) => {
+                            e.stopPropagation();
+                            const userId = (
+                                e.currentTarget as HTMLButtonElement
+                            ).getAttribute("data-user-id");
+                            const targetDropdown = document.getElementById(
+                                `dropdown-${userId}`,
+                            );
+
+                            document
+                                .querySelectorAll("[id^='dropdown-']")
+                                .forEach((el) => {
+                                    if (el !== targetDropdown)
+                                        el.classList.add("hidden");
+                                });
+
+                            targetDropdown?.classList.toggle("hidden");
+                        });
+                    });
+
+                document.querySelectorAll("[data-action]").forEach((btn) => {
+                    btn.addEventListener("click", async (e) => {
+                        const target = e.currentTarget as HTMLButtonElement;
+                        const action = target.getAttribute("data-action");
+                        const targetUserId =
+                            target.getAttribute("data-user-id");
+
+                        if (!targetUserId || !id) return;
+
+                        try {
+                            if (action === "set-sam") {
+                                await updateEventSam(id, targetUserId);
+                                window.location.reload();
+                            } else if (action === "set-leader") {
+                                const confirmed = await askConfirmation(
+                                    "Transférer la propriété",
+                                    "Êtes-vous sûr de vouloir transférer la propriété de la soirée ? Vous perdrez vos privilèges de créateur.",
+                                    false,
+                                );
+                                if (confirmed) {
+                                    await updateEventLeader(id, targetUserId);
+                                    window.location.reload();
+                                }
+                            } else if (action === "kick") {
+                                const confirmed = await askConfirmation(
+                                    "Retirer le participant",
+                                    "Êtes-vous sûr de vouloir retirer ce participant de la soirée ?",
+                                    true,
+                                );
+                                if (confirmed) {
+                                    await removeParticipantFromEvent(
+                                        id,
+                                        targetUserId,
+                                    );
+                                    window.location.reload();
+                                }
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert(
+                                "Une erreur est survenue lors de l'application des modifications.",
+                            );
+                        }
+                    });
+                });
+            }
+
+            // Gestion de l'accordéon d'amis
             function renderFriendsAccordion(filterQuery = "") {
                 if (!friendsListEl) return;
 
@@ -536,17 +1103,8 @@ const { id } = Astro.params;
                             target.setAttribute("disabled", "true");
                             target.textContent = "...";
 
-                            const newParticipant = await addParticipantToEvent(
-                                id,
-                                friendId,
-                            );
-
-                            participants.push(newParticipant);
-                            renderParticipants();
-
-                            if (searchFriendsInput)
-                                searchFriendsInput.value = "";
-                            renderFriendsAccordion();
+                            await addParticipantToEvent(id, friendId);
+                            window.location.reload();
                         } catch (err: any) {
                             console.error(err);
                             alert("Impossible d'ajouter cet ami à la soirée.");
@@ -574,8 +1132,10 @@ const { id } = Astro.params;
                 renderFriendsAccordion(target.value.trim());
             });
 
+            // Événements globaux du document
             document.addEventListener("click", (e) => {
                 const target = e.target as HTMLElement;
+
                 if (
                     !searchFriendsInput?.contains(target) &&
                     !accordionContent?.contains(target)
@@ -583,10 +1143,17 @@ const { id } = Astro.params;
                     accordionContent?.classList.add("hidden");
                     accordionArrow?.classList.remove("rotate-180");
                 }
+
+                if (!target.classList.contains("participant-options-btn")) {
+                    document
+                        .querySelectorAll("[id^='dropdown-']")
+                        .forEach((el) => {
+                            el.classList.add("hidden");
+                        });
+                }
             });
         } catch (err) {
             console.error(err);
-            window.location.href = "/404";
         }
     }
 
