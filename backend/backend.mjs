@@ -1,5 +1,5 @@
 import PocketBase from 'pocketbase';
-export const pb = new PocketBase('https://mocktailwave.taverne-etudiante.fr');
+export const pb = new PocketBase('https://pbmocktailwave.taverne-etudiante.fr');
 
 export async function getUser(id) {
     try {
@@ -72,20 +72,57 @@ export async function Userauth(login, mdp) {
     }
 }
 
+export async function refreshAuthStore() {
+    try {
+        await pb.collection('users').authRefresh();
+        console.log("Données mises à jour avec succès :", pb.authStore.model);
+
+        return pb.authStore.model;
+
+    } catch (error) {
+        console.error("Erreur lors du rafraîchissement :", error);
+        pb.authStore.clear();
+
+        return null;
+    }
+}
+
 export async function createUser(email, password, passwordConfirm, name, prename, pseudo, date) {
-    console.log(email, password, passwordConfirm, name, prename, pseudo, date);
+    if (!email || !email.includes("@")) {
+        throw new Error("Veuillez entrer une adresse email valide.");
+    }
+
+    if (password.length < 8) {
+        throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
+    }
+
+    if (!/[A-Z]/.test(password)) {
+        throw new Error("Le mot de passe doit contenir au moins une lettre majuscule.");
+    }
+
+    if (!/[a-z]/.test(password)) {
+        throw new Error("Le mot de passe doit contenir au moins une lettre minuscule.");
+    }
+
+    if (password !== passwordConfirm) {
+        throw new Error("Les mots de passe ne correspondent pas.");
+    }
+
     let randomNumber = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
     let tag = `${pseudo}#${randomNumber}`;
     let attempts = 0;
     const MAX_ATTEMPTS = 50;
+
     while (await getUserbyTag(tag) && attempts < MAX_ATTEMPTS) {
         randomNumber = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
         tag = `${pseudo}#${randomNumber}`;
         attempts++;
     }
+
     if (attempts >= MAX_ATTEMPTS) {
         throw new Error("Impossible de générer un tag unique. Essayez un autre pseudo.");
     }
+
     try {
         const data = {
             "email": email,
@@ -99,12 +136,24 @@ export async function createUser(email, password, passwordConfirm, name, prename
             "tag": tag,
             "nameConf": 'public',
             "eventsConf": 'amis',
-
         };
+
         const record = await pb.collection('users').create(data);
         return record;
+
     } catch (error) {
-        throw new Error(error.message);
+        if (error.data && error.data.data) {
+            const fieldErrors = error.data.data;
+
+            if (fieldErrors.email) {
+                throw new Error("Cette adresse email est déjà associée à un compte.");
+            }
+            if (fieldErrors.pseudo) {
+                throw new Error("Ce pseudo est déjà utilisé.");
+            }
+        }
+
+        throw new Error(error.message || "Une erreur est survenue lors de la création de votre compte.");
     }
 }
 
@@ -230,6 +279,11 @@ export async function getFriends() {
         friends: fresh.expand?.friends || [],
         requests: fresh.expand?.receiveFriendRequest || []
     };
+}
+
+export async function deleteEvent(id) {
+    const result = await pb.collection('events').delete(id)
+    return result;
 }
 
 export async function deleteFriend(targetId) {
@@ -605,13 +659,50 @@ export async function getClassement(eventId) {
 }
 
 export async function subscribe(id, end) {
+    const formattedDate = end instanceof Date ? end.toISOString() : end;
+
     const sub = await pb.collection("abonnements").create({
         user: id,
-        subEnd: end,
+        subEnd: formattedDate,
     });
+
     const user = await pb.collection('users').update(id, {
-        sub: 'vkvrhdae8d3veu3',
-        endSub: sub.id,
+        sub: sub.id
     });
+
     return user;
+}
+
+export async function checkAdmin() {
+    if (!pb.authStore.isValid) return false;
+    try {
+        const authData = await pb.collection('users').authRefresh();
+        const user = authData.record || authData.user;
+        if (user && user.isAdmin === true) {
+            return user;
+        }
+        return false;
+    } catch (err) {
+        return false;
+    }
+}
+
+export async function deleteBar(id) {
+    return await pb.collection('bars').delete(id);
+}
+export async function updateBar(id, data) {
+    return await pb.collection('bars').update(id, data);
+}
+
+export async function addDefi(data) {
+    return await pb.collection('challenges').create(data);
+}
+export async function getDefis() {
+    return await pb.collection('challenges').getFullList({ sort: '-created' });
+}
+export async function deleteDefi(id) {
+    return await pb.collection('challenges').delete(id);
+}
+export async function updateDefi(id, data) {
+    return await pb.collection('challenges').update(id, data);
 }

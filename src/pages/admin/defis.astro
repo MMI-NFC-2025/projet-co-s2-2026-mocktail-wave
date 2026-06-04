@@ -1,0 +1,377 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import HeaderAdmin from "../../components/HeaderAdmin.astro";
+---
+
+<AdminLayout title="Admin - Gestion des Défis">
+    <div class="min-h-screen bg-[#1a0f19] text-white font-sans pb-10">
+        <HeaderAdmin />
+
+        <main class="max-w-3xl mx-auto p-6 mt-6">
+            <!-- FORMULAIRE DE CRÉATION (Toujours visible au début) -->
+            <section
+                id="create-section"
+                class="bg-[#241523] rounded-2xl p-6 mb-6 shadow-lg border border-white/5"
+            >
+                <h1 class="text-center text-xl font-bold mb-6 text-tonique">
+                    Ajouter un défi
+                </h1>
+
+                <form id="add-defi-form" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Nom du défi</label
+                        >
+                        <input
+                            type="text"
+                            name="name"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none"
+                            placeholder="Nom du défi..."
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Catégorie</label
+                        >
+                        <select
+                            name="category"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none cursor-pointer"
+                        >
+                            <option value="" disabled selected
+                                >Choisir une catégorie...</option
+                            >
+                            <option value="Articulation">Articulation</option>
+                            <option value="Reflex">Reflex</option>
+                            <option value="Mémoire">Mémoire</option>
+                            <option value="Équilibre">Équilibre</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Règle du défi</label
+                        >
+                        <textarea
+                            name="rule"
+                            required
+                            class="rounded-xl px-4 py-2 bg-white text-black outline-none h-24 resize-none"
+                            placeholder="Expliquez la règle ici..."></textarea>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="mt-2 mx-auto block action-btn text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition-opacity"
+                    >
+                        Ajouter le défi
+                    </button>
+                </form>
+            </section>
+
+            <!-- FORMULAIRE DE MODIFICATION (Masqué par défaut, apparaît au clic) -->
+            <section
+                id="edit-section"
+                class="bg-[#2c152b] rounded-2xl p-6 mb-6 shadow-lg border-2 border-dominante hidden"
+            >
+                <div class="flex justify-between items-center mb-6">
+                    <h2
+                        class="text-xl font-bold uppercase tracking-wider text-tonique"
+                    >
+                        Modifier : <span id="edit-title-name" class="text-white"
+                        ></span>
+                    </h2>
+                    <button
+                        id="cancel-edit"
+                        class="text-sm text-gray-400 hover:text-white underline"
+                        >Annuler</button
+                    >
+                </div>
+
+                <form id="edit-defi-form" class="flex flex-col gap-4">
+                    <input type="hidden" id="edit-id" />
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Nom du défi</label
+                        >
+                        <input
+                            type="text"
+                            id="edit-name"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none"
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Catégorie</label
+                        >
+                        <select
+                            id="edit-category"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none cursor-pointer"
+                        >
+                            <option value="Articulation">Articulation</option>
+                            <option value="Reflex">Reflex</option>
+                            <option value="Mémoire">Mémoire</option>
+                            <option value="Équilibre">Équilibre</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Règle du défi</label
+                        >
+                        <textarea
+                            id="edit-rule"
+                            required
+                            class="rounded-xl px-4 py-2 bg-white text-black outline-none h-24 resize-none"
+                        ></textarea>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="mt-2 mx-auto block action-btn text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition-opacity"
+                    >
+                        Enregistrer les modifications
+                    </button>
+                </form>
+            </section>
+
+            <!-- LISTE & RECHERCHE -->
+            <section class="mt-10">
+                <h2
+                    class="text-center text-xl font-bold mb-4 uppercase tracking-wider"
+                >
+                    Liste des défis
+                </h2>
+
+                <div class="mb-6">
+                    <input
+                        type="text"
+                        id="search-bar"
+                        placeholder="Rechercher un défi par nom ou catégorie..."
+                        class="w-full rounded-full px-4 py-2 bg-white text-black outline-none shadow-inner"
+                    />
+                </div>
+
+                <div id="defis-list" class="flex flex-col gap-3">
+                    <p class="text-center text-gray-400">
+                        Chargement des défis...
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+</AdminLayout>
+
+<script>
+    import {
+        checkAdmin,
+        addDefi,
+        getDefis,
+        updateDefi,
+        deleteDefi,
+    } from "../../../backend/backend.mjs";
+
+    let allDefis = [];
+
+    async function init() {
+        // 1. Sécurité Admin
+        const isAdmin = await checkAdmin();
+        if (!isAdmin) {
+            window.location.href = "/";
+            return;
+        }
+
+        const listContainer = document.getElementById("defis-list");
+        const searchBar = document.getElementById(
+            "search-bar",
+        ) as HTMLInputElement;
+
+        const addForm = document.getElementById(
+            "add-defi-form",
+        ) as HTMLFormElement;
+        const editSection = document.getElementById("edit-section");
+        const editForm = document.getElementById(
+            "edit-defi-form",
+        ) as HTMLFormElement;
+        const cancelBtn = document.getElementById("cancel-edit");
+
+        // 2. Récupérer les données de la BDD
+        async function fetchAndRender() {
+            try {
+                allDefis = await getDefis();
+                renderList(allDefis);
+            } catch (err) {
+                listContainer.innerHTML = `<p class="text-center text-red-500">Erreur lors de la récupération des défis.</p>`;
+            }
+        }
+
+        // 3. Rendu de la liste avec alternance des 3 couleurs selon l'index
+        function renderList(defisToDisplay) {
+            if (defisToDisplay.length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-gray-400 py-4">Aucun défi trouvé.</p>`;
+                return;
+            }
+
+            listContainer.innerHTML = defisToDisplay
+                .map((defi, index) => {
+                    // 💡 Alternance stricte entre tonique, secondaire, et secondaire-dark
+                    let bgClass = "bg-tonique text-black"; // index % 3 === 0
+                    if (index % 3 === 1) {
+                        bgClass = "bg-secondaire text-white";
+                    } else if (index % 3 === 2) {
+                        bgClass = "bg-secondaire-dark text-white";
+                    }
+
+                    return `
+                <div class="${bgClass} p-4 rounded-xl flex justify-between items-center shadow-md cursor-pointer hover:scale-[1.01] transition-transform duration-200 defi-card" data-id="${defi.id}">
+                    <div class="text-sm font-semibold space-y-0.5 pointer-events-none">
+                        <p class="uppercase text-lg font-bold">${defi.name}</p>
+                        <p class="opacity-90">Catégorie : <span class="font-normal">${defi.category || defi.categories || "Non spécifié"}</span></p>
+                        <p class="opacity-90">Règle : <span class="font-normal block italic mt-1 line-clamp-2">${defi.rule}</span></p>
+                    </div>
+                    <button class="delete-btn p-2 opacity-70 hover:opacity-100 transition-opacity" data-id="${defi.id}">
+                        🗑️
+                    </button>
+                </div>
+            `;
+                })
+                .join("");
+
+            // Action : Clic sur une carte pour modifier
+            document.querySelectorAll(".defi-card").forEach((card) => {
+                card.addEventListener("click", (e) => {
+                    if (
+                        (e.target as HTMLElement).classList.contains(
+                            "delete-btn",
+                        )
+                    )
+                        return;
+                    const id = card.getAttribute("data-id");
+                    const selectedDefi = allDefis.find((d) => d.id === id);
+                    if (selectedDefi) openEditMode(selectedDefi);
+                });
+            });
+
+            // Action : Clic sur la poubelle pour supprimer
+            document.querySelectorAll(".delete-btn").forEach((btn) => {
+                btn.addEventListener("click", async (e) => {
+                    e.stopPropagation();
+                    if (confirm("Voulez-vous supprimer ce défi ?")) {
+                        const id = btn.getAttribute("data-id");
+                        await deleteDefi(id);
+                        if (
+                            (
+                                document.getElementById(
+                                    "edit-id",
+                                ) as HTMLInputElement
+                            ).value === id
+                        ) {
+                            closeEditMode();
+                        }
+                        fetchAndRender();
+                    }
+                });
+            });
+        }
+
+        // 4. Moteur de recherche temps réel
+        searchBar.addEventListener("input", (e) => {
+            const query = (e.target as HTMLInputElement).value.toLowerCase();
+            const filtered = allDefis.filter(
+                (defi) =>
+                    defi.name.toLowerCase().includes(query) ||
+                    (defi.category &&
+                        defi.category.toLowerCase().includes(query)) ||
+                    (defi.categories &&
+                        defi.categories.toLowerCase().includes(query)),
+            );
+            renderList(filtered);
+        });
+
+        // 5. Gestion des formulaires (Ouvrir / Fermer)
+        function openEditMode(defi) {
+            editSection.classList.remove("hidden");
+
+            document.getElementById("edit-title-name").textContent = defi.name;
+            (document.getElementById("edit-id") as HTMLInputElement).value =
+                defi.id;
+            (document.getElementById("edit-name") as HTMLInputElement).value =
+                defi.name;
+            (document.getElementById("edit-rule") as HTMLInputElement).value =
+                defi.rule;
+            (
+                document.getElementById("edit-category") as HTMLSelectElement
+            ).value = defi.category || defi.categories || "";
+
+            editSection.scrollIntoView({ behavior: "smooth" });
+        }
+
+        function closeEditMode() {
+            editForm.reset();
+            editSection.classList.add("hidden");
+        }
+
+        cancelBtn.addEventListener("click", closeEditMode);
+
+        // 6. Soumission : CRÉATION d'un défi
+        addForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const submitBtn = addForm.querySelector("button");
+            submitBtn.disabled = true;
+
+            const formData = new FormData(addForm);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                await addDefi(data);
+                addForm.reset();
+                await fetchAndRender();
+            } catch (err) {
+                alert("Erreur lors de la création du défi.");
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 7. Soumission : MODIFICATION d'un défi
+        editForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const submitBtn = editForm.querySelector("button");
+            submitBtn.disabled = true;
+
+            const id = (document.getElementById("edit-id") as HTMLInputElement)
+                .value;
+            const updatedData = {
+                name: (document.getElementById("edit-name") as HTMLInputElement)
+                    .value,
+                category: (
+                    document.getElementById(
+                        "edit-category",
+                    ) as HTMLSelectElement
+                ).value,
+                rule: (document.getElementById("edit-rule") as HTMLInputElement)
+                    .value,
+            };
+
+            try {
+                await updateDefi(id, updatedData);
+                closeEditMode();
+                await fetchAndRender();
+            } catch (err) {
+                alert("Erreur lors de la modification.");
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Premier chargement
+        fetchAndRender();
+    }
+
+    init();
+</script>

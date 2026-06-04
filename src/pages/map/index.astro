@@ -102,12 +102,12 @@ const bars = await getBars();
     let selected = [];
     let currentPage = 1;
     const itemsPerPage = 6;
-    const user = await isLogged();
-    const userID = user.id;
 
     async function init() {
-        if (!isLogged) {
-            window.location.href = "/account/register";
+        const user = await isLogged();
+        if (!user) {
+            window.location.href = "/account/login";
+            return;
         }
         map = L.map("map", { zoomControl: false }).setView(
             [47.2378, 6.024],
@@ -284,7 +284,8 @@ const bars = await getBars();
     }
 
     async function createParty() {
-        console.log(userID);
+        const user = await isLogged();
+        const userID = user.id;
         if (selected.length === 0) {
             alert(
                 "Veuillez sélectionner au moins un bar pour créer une soirée.",

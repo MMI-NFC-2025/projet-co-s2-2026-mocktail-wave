@@ -2,57 +2,102 @@ import type { APIRoute } from 'astro';
 import { subscribe } from '../../../../backend/backend.mjs';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
-const endpointSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
-
 export const POST: APIRoute = async ({ request }) => {
-    const rawBody = await request.text();
-    const sig = request.headers.get('stripe-signature');
-
-    if (!sig || !endpointSecret) {
-        return new Response(JSON.stringify({ error: "Signature ou secret manquant" }), { status: 400 });
-    }
-
-    let event: Stripe.Event;
-
     try {
-        event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
-    } catch (err: any) {
-        console.error(`❌ Échec de la vérification du Webhook: ${err.message}`);
-        return new Response(JSON.stringify({ error: `Webhook Error: ${err.message}` }), { status: 400 });
-    }
+        // 1. Récupération robuste des clés (Compatible Astro + Netlify Node.js)
+        // Note : On utilise (import.meta.env as any) pour éviter les alertes TypeScript si process.env est détecté
+        const stripeKey = import.meta.env.STRIPE_SECRET_KEY || (typeof process !== 'undefined' ? process.env.STRIPE_SECRET_KEY : null);
+        const endpointSecret = import.meta.env.STRIPE_WEBHOOK_SECRET || (typeof process !== 'undefined' ? process.env.STRIPE_WEBHOOK_SECRET : null);
 
-    if (event.type === 'invoice.payment_succeeded') {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = invoice.subscription as string;
+        if (!stripeKey || !endpointSecret) {
+            return new Response(
+                JSON.stringify({ error: "Clés Stripe introuvables sur le serveur de production." }),
+                { status: 501, headers: { 'Content-Type': 'application/json' } } // 501 = Erreur de configuration
+            );
+        }
 
-        if (subscriptionId) {
-            try {
-                const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-                const userId = subscription.metadata.userId;
+        const stripe = new Stripe(stripeKey, {
+            apiVersion: '2023-10-16', // Fortement recommandé par Stripe pour éviter les bugs de versionnage
+        });
 
-                if (!userId) {
-                    console.warn(`⚠️ Aucun userId trouvé dans les métadonnées de l'abonnement ${subscriptionId}`);
-                    return new Response(JSON.stringify({ error: "userId manquant" }), { status: 400 });
+        // 2. Lecture du body et de la signature
+        const rawBody = await request.text();
+        const sig = request.headers.get('stripe-signature');
+
+        if (!sig) {
+            return new Response(
+                JSON.stringify({ error: "En-tête stripe-signature manquant." }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        let event: Stripe.Event;
+
+        // 3. Vérification cryptographique
+        try {
+            event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
+        } catch (err: any) {
+            return new Response(
+                JSON.stringify({ error: `Signature invalide: ${err.message}` }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        // 4. Traitement de l'abonnement
+        if (event.type === 'invoice.payment_succeeded') {
+            // On utilise "any" car les types TypeScript de Stripe ne connaissent peut-être pas encore cette structure
+            const invoice = event.data.object as any;
+
+            // 💡 1. On va chercher le subscriptionId là où il est VRAIMENT rangé
+            const subscriptionId = invoice.parent?.subscription_details?.subscription || invoice.subscription;
+
+            // 💡 2. On récupère le userId directement depuis le JSON (plus besoin de l'API Stripe !)
+            const userId = invoice.parent?.subscription_details?.metadata?.userId || invoice.lines?.data?.[0]?.metadata?.userId;
+
+            if (subscriptionId && userId) {
+                try {
+                    const periodEndTimestamp = invoice.lines?.data?.[0]?.period?.end;
+
+                    if (!periodEndTimestamp) {
+                        throw new Error("Date de fin introuvable dans la facture");
+                    }
+
+                    const expirationDate = new Date(periodEndTimestamp * 1000);
+
+                    // Appel à ton backend PocketBase
+                    await subscribe(userId, expirationDate);
+
+                } catch (internalError: any) {
+                    return new Response(
+                        JSON.stringify({
+                            error: "Crash lors du traitement en BDD",
+                            details: internalError?.message || String(internalError)
+                        }),
+                        { status: 502, headers: { 'Content-Type': 'application/json' } }
+                    );
                 }
-
-                console.log(`💰 Paiement réussi pour l'utilisateur : ${userId}`);
-                const periodEndTimestamp = invoice.lines.data[0].period.end;
-                const expirationDate = new Date(periodEndTimestamp * 1000);
-
-                // 💡 AJOUT DU AWAIT ICI : On attend que la BDD ait fini son travail
-                await subscribe(userId, expirationDate);
-
-            } catch (dbError) {
-                console.error("Erreur lors de la mise à jour en base de données:", dbError);
-                return new Response(JSON.stringify({ error: "Erreur BDD" }), { status: 500 });
+            } else {
+                // Si on n'a ni abonnement ni utilisateur, on le signale pour le debug
+                return new Response(
+                    JSON.stringify({
+                        warning: "Événement reçu mais userId ou subscriptionId introuvable dans le JSON."
+                    }),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                );
             }
         }
+
+        // Succès total
+        return new Response(
+            JSON.stringify({ received: true, event: event.type }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+
+    } catch (globalError: any) {
+        // En cas de crash total et inattendu du fichier entier
+        return new Response(
+            JSON.stringify({ error: "Crash serveur global", details: globalError?.message }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
     }
-
-    return new Response(JSON.stringify({ received: true }), { status: 200 });
-};
-
-export const REQ_LIMIT = {
-    bodySizeLimit: '1mb',
 };

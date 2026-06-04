@@ -1,12 +1,23 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
-// On initialise Stripe avec la clé secrète stockée dans ton .env
-const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
-
 export const POST: APIRoute = async ({ request }) => {
     try {
-        // 1. On récupère le body de la requête dans Astro
+        console.log('start');
+        const stripeKey = import.meta.env.STRIPE_SECRET_KEY;
+        console.log(import.meta.env.FRONTEND_URL);
+        console.log(stripeKey);
+
+        if (!stripeKey) {
+            console.error("🚨 CRITIQUE : Clé Stripe introuvable en production !");
+            return new Response(
+                JSON.stringify({ error: "Erreur de configuration du serveur." }),
+                { status: 500, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        const stripe = new Stripe(stripeKey);
+
         const body = await request.json();
         const { id } = body;
 
@@ -17,7 +28,6 @@ export const POST: APIRoute = async ({ request }) => {
             );
         }
 
-        // 2. Création de la session Stripe
         const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
             payment_method_types: ['card'],
@@ -29,8 +39,8 @@ export const POST: APIRoute = async ({ request }) => {
                 }
             },
 
-            success_url: `${import.meta.env.SITE}/compte`,
-            cancel_url: `${import.meta.env.SITE}/compte`,
+            success_url: `${import.meta.env.FRONTEND_URL}/account`,
+            cancel_url: `${import.meta.env.FRONTEND_URL}/account`,
         });
 
         // 3. On renvoie la réponse au format Astro

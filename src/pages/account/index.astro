@@ -57,15 +57,21 @@ import editicon from "../../assets/icons/neo_edit.svg";
 </Layout>
 
 <script>
-    import { isLogged, logout } from "../../../backend/backend.mjs";
+    import {
+        isLogged,
+        logout,
+        deleteEvent,
+        refreshAuthStore,
+    } from "../../../backend/backend.mjs";
 
     async function init() {
-        const user = await isLogged();
+        const user = await refreshAuthStore();
         if (!user) {
             window.location.href = "/account/login";
             return;
         }
 
+        // 1. Initialisation du profil
         const titleElement = document.getElementById("profile-tag");
         if (titleElement) {
             titleElement.textContent = user.tag;
@@ -76,63 +82,7 @@ import editicon from "../../assets/icons/neo_edit.svg";
             window.location.href = "/";
         });
 
-        // Affichage des événements
-        const leaderOf = user.leader_of || [];
-        const memberOf = user.member_of || [];
-        const eventList = document.getElementById("event-list");
-        if (leaderOf.length === 0 && memberOf.length === 0) {
-            eventList.innerHTML =
-                '<li class="text-gray-500">Aucun événement pour le moment.</li>';
-            return;
-        }
-        try {
-            const response = await fetch("/api/getEvents", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    leader_of: leaderOf,
-                    member_of: memberOf,
-                }),
-            });
-            if (!response.ok)
-                throw new Error(
-                    "Erreur lors de la récupération des événements",
-                );
-            const events = await response.json();
-            if (!Array.isArray(events) || events.length === 0) {
-                eventList.innerHTML =
-                    '<li class="text-gray-500">Aucun événement pour le moment.</li>';
-                return;
-            }
-            eventList.innerHTML = events
-                .map(
-                    (ev) =>
-                        `
-        <a href="/soiree/${ev.id}" class="page-btn w-full mb-5 text-start flex justify-between items-center">
-            
-            <div>
-                <h3 class="font-semibold text-lg mb-1">
-                    ${ev.name || "SOIRÉE"} • ${ev.multi_bar ? "Multi-Bar" : "Bar"}
-                </h3>
-                <div class="text-sm space-y-0.5">
-                    <p>Organisé par : ${ev.expand?.leader?.tag || "XXXX"}</p>
-                    <p>${ev.date ? new Date(ev.date).toLocaleDateString("fr-FR") : "Date à programmer"}</p>
-                    <p>Participants : ${ev.members.length}</p>
-                </div>
-            </div>
-
-            <button class="text-white opacity-80 hover:opacity-100 p-2" onclick="deleteEvent('${ev.id}')">
-                <img src="" alt="">
-            </button>
-
-        </a>
-        `,
-                )
-                .join("");
-        } catch (err) {
-            eventList.innerHTML =
-                '<li class="text-red-500">Erreur lors de la récupération des événements</li>';
-        }
+        // 2. Gestion de l'abonnement Stripe (on le fait en premier !)
         const subBtn = document.getElementById("sub-btn");
         const subImg = document.getElementById("sub-img");
         const subText = document.getElementById("sub-text");
@@ -145,9 +95,9 @@ import editicon from "../../assets/icons/neo_edit.svg";
             subText.classList.remove("text-tonique/75");
             subText.classList.add("text-tonique");
 
-            subBtn.disabled = true;
             subBtn.classList.remove("hover:opacity-80");
             subBtn.classList.add("cursor-default");
+            subBtn.disabled = true;
         } else {
             subBtn.addEventListener("click", async () => {
                 try {
@@ -163,7 +113,6 @@ import editicon from "../../assets/icons/neo_edit.svg";
                     const data = await response.json();
 
                     if (data.url) {
-                        // Redirection vers Stripe !
                         window.location.href = data.url;
                     } else {
                         console.error("Erreur Stripe:", data.error);
@@ -177,6 +126,73 @@ import editicon from "../../assets/icons/neo_edit.svg";
                 }
             });
         }
+        // 3. Affichage des événements
+        const leaderOf = user.leader_of || [];
+        const memberOf = user.member_of || [];
+        const eventList = document.getElementById("event-list");
+
+        if (leaderOf.length === 0 && memberOf.length === 0) {
+            // Pas de "return" ici, on affiche juste le message !
+            eventList.innerHTML =
+                '<li class="text-gray-500">Aucun événement pour le moment.</li>';
+        } else {
+            try {
+                const response = await fetch("/api/getEvents", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        leader_of: leaderOf,
+                        member_of: memberOf,
+                    }),
+                });
+
+                if (!response.ok)
+                    throw new Error(
+                        "Erreur lors de la récupération des événements",
+                    );
+
+                const events = await response.json();
+
+                if (!Array.isArray(events) || events.length === 0) {
+                    eventList.innerHTML =
+                        '<li class="text-gray-500">Aucun événement pour le moment.</li>';
+                } else {
+                    eventList.innerHTML = events
+                        .map(
+                            (ev) => `
+                        <div class="page-btn w-full mb-5 text-start flex justify-between items-center">
+                            <a href="/soiree/${ev.id}" class='flex-1'>
+                                <h3 class="font-semibold text-lg mb-1">
+                                    ${ev.name || "SOIRÉE"} • ${ev.multi_bar ? "Multi-Bar" : "Bar"}
+                                </h3>
+                                <div class="text-sm space-y-0.5">
+                                    <p>Organisé par : ${ev.expand?.leader?.tag || "XXXX"}</p>
+                                    <p>${ev.date ? new Date(ev.date).toLocaleDateString("fr-FR") : "Date à programmer"}</p>
+                                    <p>Participants : ${ev.members?.length || 0}</p> 
+                                </div>
+                            </a>
+                            <button class="text-white opacity-80 hover:opacity-100 p-2 delete_btn" data-id="${ev.id}">
+                                <img src="/delete.svg" alt="Supprimer">
+                            </button>
+                        </div>
+                    `,
+                        )
+                        .join("");
+                    const deleteBtns = document.querySelectorAll(".delete_btn");
+                    deleteBtns.forEach((btn) => {
+                        const evid = btn.getAttribute("data-id");
+                        btn.addEventListener("click", () => {
+                            deleteEvent(evid);
+                            window.location.reload();
+                        });
+                    });
+                }
+            } catch (err) {
+                eventList.innerHTML =
+                    '<li class="text-red-500">Erreur lors de la récupération des événements</li>';
+            }
+        }
     }
+
     init();
 </script>

@@ -7,7 +7,7 @@ import editIcon from "../../assets/icons/edit.svg";
 const { id } = Astro.params;
 ---
 
-<Layout>
+<Layout title="Soirée">
     <div
         id="event-page-container"
         data-id={id}
@@ -222,7 +222,7 @@ const { id } = Astro.params;
 
     <div
         id="custom-confirm-modal"
-        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-200"
+        class="hidden fixed inset-0 z-1000 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-200"
     >
         <div
             class="bg-dominante border border-tonique p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl transform scale-95 transition-transform duration-200"
@@ -271,6 +271,7 @@ const { id } = Astro.params;
         loadMyChallenge,
         validateChallenge,
         getClassement,
+        deleteEvent,
     } from "../../../backend/backend.mjs";
 
     // Variables globales
@@ -749,9 +750,8 @@ const { id } = Astro.params;
                         try {
                             startEventBtn.setAttribute("disabled", "true");
 
-                            await endEvent(id);
-
-                            window.location.href = "/events";
+                            await deleteEvent(id);
+                            window.location.href = "/account";
                         } catch (err) {
                             console.error(err);
                             alert("Impossible de terminer la soirée.");

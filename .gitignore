@@ -24,3 +24,5 @@ pnpm-debug.log*
 .idea/
 
 pocketbase/
+# Local Netlify folder
+.netlify

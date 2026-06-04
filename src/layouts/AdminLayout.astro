@@ -1,11 +1,12 @@
 ---
-const { title } = Astro.props;
 import "../styles/global.css";
 import Footer from "../components/Footer.astro";
 import "@fontsource-variable/roboto/wght.css";
 import "@fontsource/bebas-neue";
+const { title } = Astro.props;
 ---
 
+<!doctype html>
 <html lang="fr">
     <head>
         <meta charset="UTF-8" />
@@ -18,9 +19,7 @@ import "@fontsource/bebas-neue";
             content="La plateforme idéale pour organiser vos sorties entre amis dans le Doubs (Besançon, Montbéliard). Trouvez des bars, profitez d'événements rétro wave, de mini-jeux et de mocktails en toute sécurité."
         />
     </head>
-    <body
-        class="bg-dominante text-white min-h-screen flex flex-col items-center"
-    >
+    <body class="bg-dominante relative text-white">
         <slot />
         <Footer />
     </body>
