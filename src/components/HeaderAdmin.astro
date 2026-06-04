@@ -1,0 +1,43 @@
+---
+const pathname = new URL(Astro.request.url).pathname;
+---
+
+<header
+    class="flex justify-between items-center p-4 bg-[#140a14] text-white border-b border-white/10"
+>
+    <div class="flex items-center gap-3">
+        <img src="/logo.svg" alt="Mocktail Wave" class="h-20" />
+    </div>
+
+    <nav class="flex gap-6 text-sm font-semibold uppercase">
+        <a
+            href="/admin/bars"
+            class={pathname.includes("/bars")
+                ? "text-tonique"
+                : "hover:text-tonique transition-colors"}>Bars</a
+        >
+        <a
+            href="/admin/defis"
+            class={pathname.includes("/defis")
+                ? "text-tonique"
+                : "hover:text-tonique transition-colors"}>Défis</a
+        >
+    </nav>
+
+    <button
+        id="logout-admin-btn"
+        class="text-sm hover:underline text-gray-300 hover:text-white font-semibold text-secondaire"
+    >
+        Retour au site
+    </button>
+</header>
+
+<script>
+    import { logout } from "../../backend/backend.mjs";
+    document
+        .getElementById("logout-admin-btn")
+        ?.addEventListener("click", () => {
+            logout();
+            window.location.href = "/account/login";
+        });
+</script>

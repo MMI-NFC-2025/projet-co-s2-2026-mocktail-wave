@@ -1,0 +1,39 @@
+---
+import Image from "astro/components/Image.astro";
+import logo from "../assets/icons/logo.svg";
+import fb from "../assets/icons/fb.svg";
+import ig from "../assets/icons/ig.svg";
+import x from "../assets/icons/x.svg";
+---
+
+<footer class="flex flex-col items-center p-10 bg-brand-dark text-white gap-5">
+    <div class="flex flex-col gap-3">
+        <h3 class="text-3xl">Navigation</h3>
+        <ul class="flex flex-col gap-2">
+            <li><a href="/">Accueil</a></li>
+            <li><a href="/map">Carte des bars</a></li>
+            <li><a href="/social">Social</a></li>
+            <li><a href="/account">Compte</a></li>
+        </ul>
+    </div>
+    <div class="separator"></div>
+    <div class="flex flex-col gap-2">
+        <Image src={logo} alt="logo" class="h-30 object-contain" />
+        <div class="flex items-center justify-center flex-wrap gap-5">
+            <div class="flex gap-1 items-center">
+                <Image src={fb} alt="FB logo" class="h-7 w-7" />
+                <p class="bebas text-xl">@mocktailwave</p>
+            </div>
+            <div class="flex gap-1 items-center">
+                <Image src={ig} alt="IG logo" class="h-7 w-7" />
+                <p class="bebas text-xl">@mocktailwave</p>
+            </div>
+            <div class="flex gap-1 items-center">
+                <Image src={x} alt="X logo" class="h-7 w-7" />
+                <p class="bebas text-xl">@mocktailwave</p>
+            </div>
+        </div>
+    </div>
+    <div class="separator"></div>
+    <p>2026 MocktailWave All Rights Reserved</p>
+</footer>

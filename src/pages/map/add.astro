@@ -1,0 +1,203 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Image from "astro/components/Image.astro";
+import hero from "../../assets/images/map_hero.avif";
+---
+
+<Layout title="Carte des Bars">
+    <section class="text-white min-h-screen font-sans">
+        <Image src={hero} alt="Hero Image" class="hero" />
+
+        <div class="p-5">
+            <h1 class="neo-title text-3xl text-center">Ajouter un bar</h1>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="p-6 flex flex-col items-center gap-5">
+            <input
+                type="text"
+                id="search-bar"
+                placeholder="Nom du bar (ex: O'Brian, Madigan's...)"
+                class="w-full p-2 rounded-lg text-black text-sm border shadow-sm outline-none bg-white"
+            />
+            <button class="action-btn font-bold">Chercher ...</button>
+        </div>
+
+        <div class="p-6">
+            <h2 class="text-3xl text-center mb-4">Résultats :</h2>
+            <div id="results-grid" class="grid grid-cols-2 gap-4"></div>
+
+            <div
+                id="pagination-container"
+                class="flex w-full justify-center gap-2 mt-5"
+            >
+            </div>
+
+            <div id="no-results" class="hidden text-center py-10">
+                <p class="mb-4 text-tonique">
+                    Oups..! Aucun bar trouvé dans le Doubs.
+                </p>
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<script>
+    let results = [];
+    let currentPage = 1;
+    const itemsPerPage = 6;
+
+    function init() {
+        const searchBar = document.querySelector("#search-bar");
+        const searchBtn = document.querySelector(".action-btn");
+        const grid = document.querySelector("#results-grid");
+
+        const performSearch = async () => {
+            const query = searchBar.value.trim();
+
+            if (query.length < 2) {
+                alert("Veuillez entrer au moins 2 caractères.");
+                return;
+            }
+
+            // UI feedback
+            const originalText = searchBtn.textContent;
+            searchBtn.textContent = "Chargement...";
+            searchBtn.disabled = true;
+            grid.innerHTML =
+                '<p class="col-span-2 text-center py-10 opacity-50">Recherche en cours...</p>';
+
+            try {
+                const response = await fetch(
+                    `/api/search?q=${encodeURIComponent(query)}`,
+                );
+                results = response.ok ? await response.json() : [];
+
+                currentPage = 1;
+                renderResults();
+            } catch (err) {
+                console.error("Erreur recherche:", err);
+                grid.innerHTML = "";
+                alert("Erreur lors de la récupération des bars.");
+            } finally {
+                searchBtn.textContent = originalText;
+                searchBtn.disabled = false;
+            }
+        };
+
+        searchBtn?.addEventListener("click", performSearch);
+        searchBar?.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") performSearch();
+        });
+
+        // Gestion du clic sur une carte pour ajouter le bar
+        document.addEventListener("click", async (e) => {
+            const btn = e.target.closest(".bar_card");
+            if (btn) {
+                const id = btn.dataset.id;
+                const barData = results.find((b) => b.id === id);
+
+                if (barData) {
+                    // Feedback visuel immédiat sur le bouton
+                    const loader = btn.querySelector(".loader-overlay");
+                    loader?.classList.remove("hidden");
+
+                    try {
+                        const response = await fetch("/api/addBar", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                id: barData.id,
+                                name: barData.name,
+                                themes: barData.themes,
+                                address: barData.address,
+                                lat: barData.lat,
+                                lng: barData.lng,
+                                imageUrl: barData.imageUrl,
+                            }),
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            alert(
+                                `Succès ! ${barData.name} a été ajouté à ta carte.`,
+                            );
+                            results = results.filter((b) => b.id !== id);
+                            renderResults();
+                        } else {
+                            alert(
+                                `Erreur: ${result.error || "Impossible d'ajouter ce bar."}`,
+                            );
+                        }
+                    } catch (err) {
+                        alert("Erreur réseau. Vérifie ta connexion.");
+                    } finally {
+                        loader?.classList.add("hidden");
+                    }
+                }
+            }
+        });
+    }
+
+    function renderResults() {
+        const grid = document.querySelector("#results-grid");
+        const noResults = document.querySelector("#no-results");
+        const pagination = document.querySelector("#pagination-container");
+
+        const start = (currentPage - 1) * itemsPerPage;
+        const paginatedItems = results.slice(start, start + itemsPerPage);
+
+        grid.innerHTML = "";
+
+        if (results.length === 0) {
+            noResults.classList.remove("hidden");
+            pagination.innerHTML = "";
+        } else {
+            noResults.classList.add("hidden");
+            grid.innerHTML = paginatedItems
+                .map((bar) => generateBarHTML(bar))
+                .join("");
+            renderPagination(pagination, results.length);
+        }
+    }
+
+    function renderPagination(container, totalItems) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        container.innerHTML = "";
+
+        if (totalPages <= 1) return;
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.textContent = i;
+            btn.className = `px-3 py-1 rounded-full transition-all ${i === currentPage ? "bg-tonique text-white font-bold scale-110" : "bg-white/10 text-white opacity-70"}`;
+            btn.onclick = () => {
+                currentPage = i;
+                renderResults();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    function generateBarHTML(bar) {
+        return `
+            <button class="relative rounded-xl overflow-hidden h-44 shadow-lg bar_card hover:scale-[1.02] active:scale-95 transition-all duration-300 group" data-id='${bar.id}'>
+                <img src="${bar.imageUrl}" class="w-full h-full object-cover" loading="lazy" />
+                
+                <!-- Overlay de chargement discret -->
+                <div class="loader-overlay hidden absolute inset-0 bg-black/50 flex items-center justify-center">
+                   <span class="text-[10px]">Ajout...</span>
+                </div>
+
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-black/20 text-white p-3 text-left backdrop-blur-[2px]">
+                    <p class="text-xs font-bold truncate">${bar.name}</p>
+                    <p class="text-[10px] opacity-80 truncate">${bar.address || "Doubs, France"}</p>
+                </div>
+            </button>
+        `;
+    }
+
+    init();
+</script>

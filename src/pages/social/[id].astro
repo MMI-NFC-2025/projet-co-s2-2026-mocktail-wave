@@ -1,0 +1,223 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Image from "astro/components/Image.astro";
+import hero from "../../assets/images/social_hero.avif";
+
+import { getUser } from "../../../backend/backend.mjs";
+
+const { id } = Astro.params;
+const user = await getUser(id);
+
+const targetFriendsList = JSON.stringify(user.friends || []);
+const isPrivateEvent = user.eventsConf;
+const isPrivateName = user.nameConf;
+const leaderOfList = JSON.stringify(user.leader_of || []);
+const memberOfList = JSON.stringify(user.member_of || []);
+---
+
+<Layout title="Profile">
+    <div class="flex flex-col gap-5">
+        <Image src={hero} alt="Hero Image" class="hero" />
+        <div class="p-5 text-center">
+            <h1 class="neo-title text-3xl">{user.tag}</h1>
+            <p class="mt-2">
+                <span
+                    id="user-real-name"
+                    class="font-semibold text-tonique hidden"
+                >
+                </span>
+            </p>
+
+            <div
+                id="friend-btn-container"
+                class="mt-4 hidden"
+                data-target-id={id}
+                data-friends={targetFriendsList}
+                data-nameprivate={isPrivateName}
+                data-eventprivate={isPrivateEvent}
+                data-leader-of={leaderOfList}
+                data-member-of={memberOfList}
+            >
+                <button id="friend-btn" class="action-btn"></button>
+            </div>
+
+            <div class="separator mt-5"></div>
+        </div>
+
+        <div class="p-5">
+            <h2 class="neo-title text-3xl text-center">Participe à</h2>
+
+            <div
+                id="private-profile-msg"
+                class="text-center text-gray-400 py-8 hidden"
+            >
+                Les soirées de ce profil sont privées.
+            </div>
+
+            <ul
+                id="event-list"
+                class="text-center mt-4 w-full max-w-md mx-auto hidden"
+            >
+            </ul>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import {
+        isLogged,
+        pb,
+        deleteFriend,
+        addFriendID,
+    } from "../../../backend/backend.mjs";
+
+    async function init() {
+        const currentUser = await isLogged();
+        if (!currentUser) {
+            window.location.href = "/account/login";
+            return;
+        }
+
+        const container = document.getElementById("friend-btn-container");
+        const friendBtn = document.getElementById("friend-btn");
+        const eventList = document.getElementById("event-list");
+        const privateMsg = document.getElementById("private-profile-msg");
+        const realNameSpan = document.getElementById("user-real-name");
+
+        if (
+            !container ||
+            !friendBtn ||
+            !eventList ||
+            !privateMsg ||
+            !realNameSpan
+        )
+            return;
+
+        const targetId = container.getAttribute("data-target-id");
+
+        if (currentUser.id === targetId) {
+            window.location.href = "/account";
+            return;
+        }
+
+        const nameConf = container.getAttribute("data-nameprivate");
+        const eventConf = container.getAttribute("data-eventprivate");
+        const friendsList = JSON.parse(
+            container.getAttribute("data-friends") || "[]",
+        );
+        const leaderOf = JSON.parse(
+            container.getAttribute("data-leader-of") || "[]",
+        );
+        const memberOf = JSON.parse(
+            container.getAttribute("data-member-of") || "[]",
+        );
+
+        let isFriend = friendsList.includes(currentUser.id);
+
+        function hasAccess(confValue) {
+            if (confValue === "public") return true;
+            if (confValue === "amis" && isFriend) return true;
+            return false;
+        }
+
+        if (isFriend) {
+            friendBtn.textContent = "Supprimer des amis";
+        } else {
+            friendBtn.textContent = "Ajouter en ami";
+        }
+
+        async function loadContent() {
+            if (hasAccess(nameConf)) {
+                try {
+                    const freshUserData = await pb
+                        .collection("users")
+                        .getOne(targetId);
+
+                    realNameSpan.textContent =
+                        `${freshUserData.prename || ""} ${freshUserData.name || ""}`.trim();
+                    realNameSpan.classList.remove("hidden");
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                realNameSpan.classList.add("hidden");
+                realNameSpan.textContent = "";
+            }
+
+            if (!hasAccess(eventConf)) {
+                eventList.classList.add("hidden");
+                privateMsg.classList.remove("hidden");
+                return;
+            }
+
+            privateMsg.classList.add("hidden");
+            eventList.classList.remove("hidden");
+
+            const ids = [...leaderOf, ...memberOf];
+
+            if (ids.length === 0) {
+                eventList.innerHTML = `<li class="text-gray-500 py-4">Aucun événement pour le moment.</li>`;
+                return;
+            }
+
+            try {
+                const filterString = ids
+                    .map((id) => `id = "${id}"`)
+                    .join(" || ");
+                const events = await pb.collection("events").getFullList({
+                    filter: filterString,
+                    expand: "leader",
+                });
+
+                if (events.length === 0) {
+                    eventList.innerHTML = `<li class="text-gray-500 py-4">Aucun événement pour le moment.</li>`;
+                } else {
+                    eventList.innerHTML = events
+                        .map((ev) => {
+                            const isCreator = leaderOf.includes(ev.id);
+                            return `
+                            <div class="bg-[#2D1B4E] text-white p-5 rounded-xl mb-4 relative flex justify-between items-center text-left">
+                                <div>
+                                    <h3 class="font-bold text-base uppercase tracking-wide mb-1">
+                                        ${ev.title || "NOM DE SOIRÉE"} • ${ev.bar_name || "BAR"}
+                                    </h3>
+                                    <div class="text-sm opacity-80 space-y-0.5">
+                                        <p>Organisé par : ${ev.expand?.leader?.tag || "XXXX"} (${isCreator ? "Créateur" : "Membre"})</p>
+                                        <p>${ev.date ? new Date(ev.date).toLocaleDateString("fr-FR") : "02/03/2026"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        })
+                        .join("");
+                }
+            } catch (err) {
+                console.error(err);
+                eventList.innerHTML = `<li class="text-red-500 py-4">Erreur lors du chargement des soirées.</li>`;
+            }
+        }
+
+        container.classList.remove("hidden");
+        await loadContent();
+
+        friendBtn.addEventListener("click", async () => {
+            friendBtn.setAttribute("disabled", "true");
+            friendBtn.style.opacity = "0.5";
+            try {
+                if (isFriend) {
+                    await deleteFriend(targetId);
+                } else {
+                    await addFriendID(targetId);
+                }
+                window.location.reload();
+            } catch (err) {
+                console.error(err);
+                alert("Impossible de modifier la liste d'amis.");
+                friendBtn.removeAttribute("disabled");
+                friendBtn.style.opacity = "1";
+            }
+        });
+    }
+
+    init();
+</script>

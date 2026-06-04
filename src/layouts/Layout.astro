@@ -1,22 +1,28 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import "@fontsource-variable/roboto/wght.css";
+import "@fontsource/bebas-neue";
+const { title } = Astro.props;
+---
+
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>{title ? `MW - ${title}` : "Mocktail Wave"}</title>
+		<meta
+			name="description"
+			content="La plateforme idéale pour organiser vos sorties entre amis dans le Doubs (Besançon, Montbéliard). Trouvez des bars, profitez d'événements rétro wave, de mini-jeux et de mocktails en toute sécurité."
+		/>
 	</head>
-	<body>
+	<body class="bg-dominante relative text-white">
+		<Header />
 		<slot />
+		<Footer />
 	</body>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>

@@ -1,0 +1,334 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import HeaderAdmin from "../../components/HeaderAdmin.astro";
+---
+
+<AdminLayout title="Admin - Gestion des Bars">
+    <div class="min-h-screen bg-[#1a0f19] text-white font-sans pb-10">
+        <HeaderAdmin />
+
+        <main class="max-w-3xl mx-auto p-6 mt-6">
+            <!-- SECTION MODIFICATION -->
+            <section
+                id="edit-section"
+                class="bg-[#241523] rounded-2xl p-6 mb-10 shadow-lg border border-white/5 hidden"
+            >
+                <div class="flex justify-between items-center mb-6">
+                    <h1
+                        class="text-xl font-bold uppercase tracking-wider text-secondaire-dark"
+                    >
+                        Modifier : <span id="edit-title-name" class="text-white"
+                        ></span>
+                    </h1>
+                    <button
+                        id="cancel-edit"
+                        class="text-sm text-gray-400 hover:text-white underline"
+                        >Annuler</button
+                    >
+                </div>
+
+                <form id="edit-bar-form" class="flex flex-col gap-4">
+                    <input type="hidden" name="id" id="edit-id" />
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Nom du bar</label
+                        >
+                        <input
+                            type="text"
+                            name="name"
+                            id="edit-name"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none"
+                        />
+                    </div>
+
+                    <!-- 💡 MODIFICATION ICI : Le champ texte devient un SELECT -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >Thème / Catégorie</label
+                        >
+                        <select
+                            name="themes"
+                            id="edit-themes"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none cursor-pointer"
+                        >
+                            <option value="" disabled selected
+                                >Choisir un thème...</option
+                            >
+                            <option value="Dansant">Dansant</option>
+                            <option value="Chill">Chill</option>
+                            <option value="Concept">Concept</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1">Adresse</label
+                        >
+                        <input
+                            type="text"
+                            name="address"
+                            id="edit-address"
+                            required
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none"
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold ml-1"
+                            >URL du Bar (Lien site/menu)</label
+                        >
+                        <input
+                            type="url"
+                            name="imageUrl"
+                            id="edit-url"
+                            placeholder="https://..."
+                            class="rounded-full px-4 py-2 bg-white text-black outline-none"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="mt-4 mx-auto block action-btn text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition-opacity"
+                    >
+                        Enregistrer les modifications
+                    </button>
+                </form>
+            </section>
+
+            <!-- Message indicatif -->
+            <div
+                id="placeholder-msg"
+                class="bg-[#241523]/50 border border-dashed border-white/10 rounded-2xl p-6 mb-10 text-center text-gray-400 text-sm"
+            >
+                💡 Cliquez sur une carte de bar ci-dessous pour modifier ses
+                informations.
+            </div>
+
+            <!-- SECTION RECHERCHE & LISTE -->
+            <section>
+                <h2
+                    class="text-center text-xl font-bold mb-4 uppercase tracking-wider"
+                >
+                    Liste des bars
+                </h2>
+
+                <div class="mb-6">
+                    <input
+                        type="text"
+                        id="search-bar"
+                        placeholder="Rechercher un bar par son nom ou thème..."
+                        class="w-full rounded-full px-4 py-2 bg-white text-black outline-none shadow-inner"
+                    />
+                </div>
+
+                <div id="bars-list" class="flex flex-col gap-3">
+                    <p class="text-center text-gray-400">
+                        Chargement des bars...
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+</AdminLayout>
+
+<script>
+    import {
+        checkAdmin,
+        getBars,
+        updateBar,
+        deleteBar,
+    } from "../../../backend/backend.mjs";
+
+    let allBars = [];
+
+    async function init() {
+        const isAdmin = await checkAdmin();
+        if (!isAdmin) {
+            window.location.href = "/";
+            return;
+        }
+
+        const listContainer = document.getElementById("bars-list");
+        const searchBar = document.getElementById(
+            "search-bar",
+        ) as HTMLInputElement;
+
+        const editSection = document.getElementById("edit-section");
+        const placeholderMsg = document.getElementById("placeholder-msg");
+        const editForm = document.getElementById(
+            "edit-bar-form",
+        ) as HTMLFormElement;
+        const cancelBtn = document.getElementById("cancel-edit");
+
+        async function fetchAndRender() {
+            try {
+                allBars = await getBars();
+                renderList(allBars);
+            } catch (err) {
+                listContainer.innerHTML = `<p class="text-center text-red-500">Erreur lors de la récupération des données.</p>`;
+            }
+        }
+
+        function renderList(barsToDisplay) {
+            if (barsToDisplay.length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-gray-400 py-4">Aucun bar trouvé.</p>`;
+                return;
+            }
+
+            listContainer.innerHTML = barsToDisplay
+                .map((bar) => {
+                    // 💡 Sécurité : on récupère le thème et on le met en minuscules pour comparer sans erreur
+                    const currentTheme = (bar.themes || bar.category || "")
+                        .toLowerCase()
+                        .trim();
+
+                    // 🎨 Attribution de la classe CSS selon ton barème de couleurs
+                    let bgClass = "bg-secondaire"; // Thème par défaut ("Concept" ou autre)
+
+                    if (currentTheme === "chill") {
+                        bgClass = "bg-secondaire-dark";
+                    } else if (currentTheme === "danse") {
+                        bgClass = "bg-tonique";
+                    }
+
+                    return `
+                <div class="${bgClass} p-4 rounded-xl flex justify-between items-center text-black shadow-md cursor-pointer hover:scale-[1.01] transition-transform duration-200 bar-card" data-id="${bar.id}">
+                    <div class="text-sm font-semibold space-y-0.5 pointer-events-none">
+                        <p class="uppercase text-lg font-bold">${bar.name}</p>
+                        <p>Adresse : <span class="font-normal">${bar.address}</span></p>
+                        <p>Thème : <span class="font-normal">${bar.themes || bar.category || "Non spécifié"}</span></p>
+                        <p>Lien : <span class="font-normal text-xs underline">${bar.imageUrl || "Aucun lien"}</span></p>
+                    </div>
+                    <button class="delete-btn p-2 text-black/70 hover:text-white transition-colors" data-id="${bar.id}">
+                        <img src='/delete.svg' alt='delete icon'/>
+                    </button>
+                </div>
+            `;
+                })
+                .join("");
+
+            // Clic Carte -> Modifier
+            document.querySelectorAll(".bar-card").forEach((card) => {
+                card.addEventListener("click", (e) => {
+                    if (
+                        (e.target as HTMLElement).classList.contains(
+                            "delete-btn",
+                        )
+                    )
+                        return;
+                    const id = card.getAttribute("data-id");
+                    const selectedBar = allBars.find((b) => b.id === id);
+                    if (selectedBar) openEditMode(selectedBar);
+                });
+            });
+
+            // Clic Poubelle -> Supprimer
+            document.querySelectorAll(".delete-btn").forEach((btn) => {
+                btn.addEventListener("click", async (e) => {
+                    e.stopPropagation();
+                    if (confirm("Voulez-vous vraiment supprimer ce bar ?")) {
+                        const id = btn.getAttribute("data-id");
+                        await deleteBar(id);
+                        if (
+                            (
+                                document.getElementById(
+                                    "edit-id",
+                                ) as HTMLInputElement
+                            ).value === id
+                        ) {
+                            closeEditMode();
+                        }
+                        fetchAndRender();
+                    }
+                });
+            });
+        }
+
+        // Recherche temps réel
+        searchBar.addEventListener("input", (e) => {
+            const query = (e.target as HTMLInputElement).value.toLowerCase();
+            const filtered = allBars.filter(
+                (bar) =>
+                    bar.name.toLowerCase().includes(query) ||
+                    (bar.themes && bar.themes.toLowerCase().includes(query)) ||
+                    (bar.category &&
+                        bar.category.toLowerCase().includes(query)),
+            );
+            renderList(filtered);
+        });
+
+        // Ouvrir la modification
+        function openEditMode(bar) {
+            placeholderMsg.classList.add("hidden");
+            editSection.classList.remove("hidden");
+
+            document.getElementById("edit-title-name").textContent = bar.name;
+            (document.getElementById("edit-id") as HTMLInputElement).value =
+                bar.id;
+            (document.getElementById("edit-name") as HTMLInputElement).value =
+                bar.name;
+            (
+                document.getElementById("edit-address") as HTMLInputElement
+            ).value = bar.address;
+            (document.getElementById("edit-url") as HTMLInputElement).value =
+                bar.imageUrl || "";
+
+            const selectTheme = document.getElementById(
+                "edit-themes",
+            ) as HTMLSelectElement;
+            selectTheme.value = bar.themes || bar.category || "";
+
+            editSection.scrollIntoView({ behavior: "smooth" });
+        }
+
+        function closeEditMode() {
+            editForm.reset();
+            editSection.classList.add("hidden");
+            placeholderMsg.classList.remove("hidden");
+        }
+
+        cancelBtn.addEventListener("click", closeEditMode);
+
+        // Envoi du formulaire
+        editForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const submitBtn = editForm.querySelector("button");
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Mise à jour...";
+
+            const id = (document.getElementById("edit-id") as HTMLInputElement)
+                .value;
+            const updatedData = {
+                name: (document.getElementById("edit-name") as HTMLInputElement)
+                    .value,
+                themes: (
+                    document.getElementById("edit-themes") as HTMLSelectElement
+                ).value,
+                address: (
+                    document.getElementById("edit-address") as HTMLInputElement
+                ).value,
+                imageUrl: (
+                    document.getElementById("edit-url") as HTMLInputElement
+                ).value,
+            };
+
+            try {
+                await updateBar(id, updatedData);
+                closeEditMode();
+                await fetchAndRender();
+            } catch (err) {
+                alert("Erreur lors de la modification du bar.");
+                console.error(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Enregistrer les modifications";
+            }
+        });
+
+        fetchAndRender();
+    }
+
+    init();
+</script>
