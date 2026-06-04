@@ -731,3 +731,24 @@ export async function deleteDefi(id) {
 export async function updateDefi(id, data) {
     return await pb.collection('challenges').update(id, data);
 }
+
+export async function checkSubExp() {
+    try {
+        const nowIso = new Date().toISOString();
+        const expiredSubscriptions = await pb.collection('abonnements').getFullList({
+            filter: `subEnd < "${nowIso}"`,
+        });
+        console.log(`[CRON 3AM] ${expiredSubscriptions.length} abonnements expirés trouvés.`);
+
+        for (const sub of expiredSubscriptions) {
+            await pb.collection('abonnements').delete(sub.id);
+            console.log(`Enregistrement d'abonnement ${sub.id} supprimé.`);
+        }
+
+        return new Response("Verification et nettoyage des abonnements terminés avec succès.");
+
+    } catch (error) {
+        console.error("Erreur critique lors du CRON d'abonnements :", error.message);
+        return new Response(`Erreur: ${error.message}`, { status: 500 });
+    }
+}
