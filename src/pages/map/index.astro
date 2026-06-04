@@ -81,6 +81,45 @@ const bars = await getBars();
             </div>
         </div>
     </section>
+
+    <div
+        id="custom-confirm-modal"
+        class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-200"
+    >
+        <div
+            class="bg-dominante border border-tonique p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl transform scale-95 transition-transform duration-200"
+        >
+            <h3 id="modal-title" class="text-white text-xl font-bold mb-2">
+                Confirmation
+            </h3>
+            <p
+                id="modal-message"
+                class="text-gray-300 text-sm mb-6 leading-relaxed"
+            >
+                Êtes-vous sûr de vouloir effectuer cette action ?
+            </p>
+            <div class="flex gap-4 justify-center flex-wrap">
+                <button
+                    id="modal-cancel-btn"
+                    class="px-5 py-2.5 text-white bg-white/10 hover:bg-white/20 rounded-xl font-semibold transition text-sm"
+                >
+                    Annuler
+                </button>
+                <button
+                    id="modal-confirm-btn"
+                    class="px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white rounded-xl font-bold transition text-sm"
+                >
+                    Confirmer
+                </button>
+                <button
+                    id="modal-premium-btn"
+                    class="hidden px-5 py-2.5 bg-tonique hover:opacity-90 text-white rounded-xl font-bold transition text-sm"
+                >
+                    Passez à Premium
+                </button>
+            </div>
+        </div>
+    </div>
 </Layout>
 
 <style is:global>
@@ -90,16 +129,17 @@ const bars = await getBars();
         border-radius: 50%;
     }
 </style>
+
 <script>
     import L from "leaflet";
     import { isLogged, updateUserInfo } from "../../../backend/backend.mjs";
 
-    const mapElement = document.getElementById("map");
-    const bars = JSON.parse(mapElement.dataset.bars);
+    const mapElement = document.getElementById("map") as HTMLElement;
+    const bars = JSON.parse(mapElement.dataset.bars || "[]");
 
-    let map;
-    let markers = [];
-    let selected = [];
+    let map: any;
+    let markers: any[] = [];
+    let selected: string[] = [];
     let currentPage = 1;
     const itemsPerPage = 6;
 
@@ -126,54 +166,70 @@ const bars = await getBars();
         });
 
         document.querySelector("#search-bar")?.addEventListener("input", () => {
-            const query = document
-                .querySelector("#search-bar")
-                .value.toLowerCase();
-            const filtered = bars.filter((b) =>
+            const query = (
+                document.querySelector("#search-bar") as HTMLInputElement
+            ).value.toLowerCase();
+            const filtered = bars.filter((b: any) =>
                 b.name.toLowerCase().includes(query),
             );
             renderBars(filtered);
         });
 
         document.addEventListener("click", (e) => {
-            const btn = e.target.closest(".bar_card");
+            const btn = (e.target as HTMLElement).closest(
+                ".bar_card",
+            ) as HTMLElement;
             if (btn) {
                 const id = btn.dataset.id;
-                toggleSelection(id);
+                if (id) toggleSelection(id);
             }
         });
 
         renderBars(getBarsInView());
     }
 
-    function toggleSelection(id) {
+    async function toggleSelection(id: string) {
         if (selected.includes(id)) {
             selected = selected.filter((item) => item !== id);
         } else {
             if (selected.length >= 10) {
-                alert("Vous ne pouvez sélectionner que 10 bars maximum.");
+                await askConfirmation(
+                    "Sélection maximale",
+                    "Vous ne pouvez sélectionner que 10 bars maximum.",
+                    false,
+                    false,
+                    "OK",
+                );
                 return;
             }
             selected.push(id);
         }
         renderBars(getBarsInView());
     }
+
     function getBarsInView() {
         if (!map) return bars;
         const bounds = map.getBounds();
-        return bars.filter((bar) => {
+        return bars.filter((bar: any) => {
             const lat = Number(bar.lat);
             const lng = Number(bar.lng);
             if (isNaN(lat) || isNaN(lng)) return false;
             return bounds.contains([lat, lng]);
         });
     }
-    function renderBars(data) {
-        const grid = document.querySelector("#results-grid");
-        const selectionGrid = document.querySelector("#selection-grid");
-        const selectionSection = document.querySelector("#selection-section");
-        const noResults = document.querySelector("#no-results");
-        const pagination = document.querySelector("#pagination-container");
+
+    function renderBars(data: any[]) {
+        const grid = document.querySelector("#results-grid") as HTMLElement;
+        const selectionGrid = document.querySelector(
+            "#selection-grid",
+        ) as HTMLElement;
+        const selectionSection = document.querySelector(
+            "#selection-section",
+        ) as HTMLElement;
+        const noResults = document.querySelector("#no-results") as HTMLElement;
+        const pagination = document.querySelector(
+            "#pagination-container",
+        ) as HTMLElement;
 
         grid.innerHTML = "";
         selectionGrid.innerHTML = "";
@@ -182,10 +238,12 @@ const bars = await getBars();
 
         if (selected.length > 0) {
             selectionSection.classList.remove("hidden");
-            const selectedBars = bars.filter((b) => selected.includes(b.id));
+            const selectedBars = bars.filter((b: any) =>
+                selected.includes(b.id),
+            );
 
             let selectionHTML = "";
-            selectedBars.forEach((bar) => {
+            selectedBars.forEach((bar: any) => {
                 selectionHTML += generateBarHTML(bar, true);
             });
             selectionGrid.innerHTML = selectionHTML;
@@ -206,7 +264,7 @@ const bars = await getBars();
         } else {
             noResults.classList.add("hidden");
             let resultsHTML = "";
-            paginated.forEach((bar) => {
+            paginated.forEach((bar: any) => {
                 const marker = createMarker(bar);
                 markers.push(marker);
                 resultsHTML += generateBarHTML(bar, false);
@@ -216,13 +274,17 @@ const bars = await getBars();
         renderPagination(pagination, resultsToDisplay.length, itemsPerPage);
     }
 
-    function renderPagination(container, totalItems, itemsPerPage) {
+    function renderPagination(
+        container: HTMLElement,
+        totalItems: number,
+        itemsPerPage: number,
+    ) {
         const totalPages = Math.ceil(totalItems / itemsPerPage);
         container.innerHTML =
             totalPages > 1 ? `<p class="opacity-50">Pages</p>` : "";
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement("button");
-            btn.textContent = i;
+            btn.textContent = String(i);
             btn.className = `px-2 ${i === currentPage ? "text-tonique font-bold" : "text-white"}`;
             btn.onclick = () => {
                 currentPage = i;
@@ -232,13 +294,7 @@ const bars = await getBars();
         }
     }
 
-    function generateBarHTML(bar, isSelected) {
-        const color =
-            bar.themes === "dansant"
-                ? "#ED2EA5"
-                : bar.themes === "chill"
-                  ? "#FA8057"
-                  : "#fad009";
+    function generateBarHTML(bar: any, isSelected: boolean) {
         const bgColorClass =
             bar.themes === "dansant"
                 ? "bg-tonique"
@@ -258,7 +314,7 @@ const bars = await getBars();
         `;
     }
 
-    function createMarker(bar) {
+    function createMarker(bar: any) {
         const color =
             bar.themes === "dansant"
                 ? "#ED2EA5"
@@ -286,29 +342,231 @@ const bars = await getBars();
     async function createParty() {
         const user = await isLogged();
         const userID = user.id;
+
         if (selected.length === 0) {
-            alert(
+            await askConfirmation(
+                "Action requise",
                 "Veuillez sélectionner au moins un bar pour créer une soirée.",
+                false,
+                false,
+                "OK",
             );
             return;
         }
+
+        const confirmCreation = await askConfirmation(
+            "Créer la soirée",
+            `Voulez-vous lancer la création de votre soirée avec les ${selected.length} bars sélectionnés ?`,
+            false,
+            true,
+            "Confirmer",
+            "Annuler",
+        );
+        if (!confirmCreation) return;
+
         try {
             const response = await fetch("/api/addEvent", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ bars: selected, leader: userID }),
             });
-            if (!response.ok)
-                throw new Error("Erreur lors de la création de la soirée");
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(
+                    errorData.error ||
+                        "Erreur lors de la création de la soirée",
+                );
+            }
+
             const data = await response.json();
             await updateUserInfo(data.userData);
             window.location.href = `/soiree/${data.event.id}`;
-        } catch (err) {
-            alert("Erreur lors de la création de la soirée");
+        } catch (err: any) {
+            const errMsg = err.message.toLowerCase();
+
+            // GESTION STRICTE DU CAS PREMIUM ET DE TON LISTENER STRIPE
+            if (errMsg.includes("abonnement") || errMsg.includes("premium")) {
+                const modal = document.getElementById("custom-confirm-modal");
+                const modalContent = modal?.querySelector("div");
+                const modalTitle = document.getElementById("modal-title");
+                const modalMessage = document.getElementById("modal-message");
+                const confirmBtn = document.getElementById(
+                    "modal-confirm-btn",
+                ) as HTMLButtonElement;
+                const cancelBtn = document.getElementById(
+                    "modal-cancel-btn",
+                ) as HTMLButtonElement;
+                const premiumBtn = document.getElementById(
+                    "modal-premium-btn",
+                ) as HTMLButtonElement;
+
+                if (
+                    modal &&
+                    modalTitle &&
+                    modalMessage &&
+                    confirmBtn &&
+                    cancelBtn &&
+                    premiumBtn
+                ) {
+                    modalTitle.textContent = "Abonnement requis";
+                    modalMessage.textContent = err.message;
+                    confirmBtn.textContent = "OK";
+                    premiumBtn.textContent = "Passez à Premium"; // Texte forcé ici
+
+                    cancelBtn.classList.add("hidden");
+                    confirmBtn.classList.remove("hidden");
+                    premiumBtn.classList.remove("hidden");
+
+                    // On donne un style discret au bouton OK (qui sert juste à fermer)
+                    confirmBtn.className =
+                        "px-5 py-2.5 text-white bg-white/10 hover:bg-white/20 rounded-xl font-semibold transition text-sm";
+
+                    modal.classList.remove("hidden");
+                    setTimeout(
+                        () => modalContent?.classList.remove("scale-95"),
+                        10,
+                    );
+
+                    // Nettoyage de la modale
+                    const cleanUpPremiumModal = () => {
+                        modalContent?.classList.add("scale-95");
+                        modal.classList.add("hidden");
+                        confirmBtn.removeEventListener("click", onOkClick);
+                        premiumBtn.removeEventListener("click", onPremiumClick);
+                    };
+
+                    const onOkClick = () => {
+                        cleanUpPremiumModal();
+                    };
+
+                    // EXÉCUTION DE TA LOGIQUE STRIPE DIRECTE
+                    const onPremiumClick = async () => {
+                        try {
+                            premiumBtn.disabled = true;
+                            premiumBtn.classList.add("animate-pulse");
+
+                            const response = await fetch(
+                                "/api/stripe/checkout",
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({ id: userID }),
+                                },
+                            );
+
+                            const data = await response.json();
+
+                            if (data.url) {
+                                window.location.href = data.url; // Redirection Stripe directe !
+                            } else {
+                                console.error("Erreur Stripe:", data.error);
+                                premiumBtn.disabled = false;
+                                premiumBtn.classList.remove("animate-pulse");
+                            }
+                        } catch (error) {
+                            console.error("Erreur réseau:", error);
+                            premiumBtn.disabled = false;
+                            premiumBtn.classList.remove("animate-pulse");
+                        }
+                    };
+
+                    confirmBtn.addEventListener("click", onOkClick);
+                    premiumBtn.addEventListener("click", onPremiumClick);
+                }
+            } else {
+                // Autres types d'erreurs standards
+                await askConfirmation(
+                    "Action impossible",
+                    err.message,
+                    true,
+                    false,
+                    "OK",
+                );
+            }
         }
     }
+
+    function askConfirmation(
+        title: string,
+        message: string,
+        isDanger = false,
+        hasCancel = true,
+        confirmLabel = "Confirmer",
+        cancelLabel = "Annuler",
+    ): Promise<boolean> {
+        return new Promise((resolve) => {
+            const modal = document.getElementById("custom-confirm-modal");
+            const modalContent = modal?.querySelector("div");
+            const modalTitle = document.getElementById("modal-title");
+            const modalMessage = document.getElementById("modal-message");
+            const confirmBtn = document.getElementById(
+                "modal-confirm-btn",
+            ) as HTMLButtonElement;
+            const cancelBtn = document.getElementById(
+                "modal-cancel-btn",
+            ) as HTMLButtonElement;
+            const premiumBtn = document.getElementById(
+                "modal-premium-btn",
+            ) as HTMLButtonElement;
+
+            if (
+                !modal ||
+                !modalTitle ||
+                !modalMessage ||
+                !confirmBtn ||
+                !cancelBtn ||
+                !premiumBtn
+            ) {
+                resolve(false);
+                return;
+            }
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            confirmBtn.textContent = confirmLabel;
+            cancelBtn.textContent = cancelLabel;
+            premiumBtn.classList.add("hidden"); // Caché pour les confirmations classiques
+
+            if (isDanger) {
+                confirmBtn.className =
+                    "px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white rounded-xl font-bold transition text-sm";
+            } else {
+                confirmBtn.className =
+                    "px-5 py-2.5 bg-green-400 hover:bg-green-300 text-black rounded-xl font-bold transition text-sm";
+            }
+
+            if (!hasCancel) {
+                cancelBtn.classList.add("hidden");
+            } else {
+                cancelBtn.classList.remove("hidden");
+            }
+
+            modal.classList.remove("hidden");
+            setTimeout(() => modalContent?.classList.remove("scale-95"), 10);
+
+            const cleanUp = (result: boolean) => {
+                modalContent?.classList.add("scale-95");
+                modal.classList.add("hidden");
+                confirmBtn.removeEventListener("click", onConfirm);
+                cancelBtn.removeEventListener("click", onCancel);
+                resolve(result);
+            };
+
+            function onConfirm() {
+                cleanUp(true);
+            }
+            function onCancel() {
+                cleanUp(false);
+            }
+
+            confirmBtn.addEventListener("click", onConfirm);
+            cancelBtn.addEventListener("click", onCancel);
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         const partyBtn = document.getElementById("create-party-btn");
         if (partyBtn) {

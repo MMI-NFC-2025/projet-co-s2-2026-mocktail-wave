@@ -402,6 +402,13 @@ export async function createEvent({ bars }, leader) {
     if (!bars || !Array.isArray(bars) || bars.length === 0) {
         throw new Error("Aucun bar sélectionné");
     }
+    const leaderData = await pb.collection('users').getOne(leader);
+    const now = Date.now();
+    const fourteenDaysInMs = 1000 * 60 * 60 * 24 * 14;
+
+    if (leaderData.last_event && !leaderData.sub && Date.parse(leaderData.last_event) > now - fourteenDaysInMs) {
+        throw new Error("Passez à premium pour pouvoir faire plus d'une soirée tous les 14 jours !");
+    }
 
     const eventdata = {
         bars: bars,
@@ -415,7 +422,8 @@ export async function createEvent({ bars }, leader) {
         const event = await pb.collection('events').create(eventdata);
 
         const userData = {
-            "leader_of+": event.id
+            "leader_of+": event.id,
+            last_event: new Date()
         }
         return { userData, event };
 
