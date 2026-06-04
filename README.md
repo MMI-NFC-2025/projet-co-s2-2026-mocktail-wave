@@ -3,20 +3,20 @@
 
 Éléménts à renseigner pour la soutenance :
 
-- [ ] Nom du projet :
-- [ ] URL de la landing page :
-- [ ] URL de l'application finale :
-- [ ] URL de connexion au back office :
-- [ ] Identifiant de connexion au backoffice :
-- [ ] Mot de passe de connexion au backoffice :
-- [ ] URL de la maquette FIGMA :
-- [ ] Description du projet :
+- [ Mocktail Wave ] Nom du projet :
+- [ https://mocktailwave.taverne-etudiante.fr ] URL de la landing page :
+- [ https://mocktailwave.taverne-etudiante.fr/map ] URL de l'application finale :
+- [ https://pbmocktailwave.taverne-etudiante.fr/_/  ] URL de connexion au back office :
+- [ mael.brungard44320@gmail.com ] Identifiant de connexion au backoffice :
+- [ brumael1011 ] Mot de passe de connexion au backoffice :
+- [ https://www.figma.com/design/Nchn3mwAlUzPLowr5Kj1Wz/MocktailWave?node-id=10-168&t=UiRLrNevYVxOJm3l-0 ] URL de la maquette FIGMA :
+- [ Plateform de création de soirée entre amis animée par des mini-jeux et défis ] Description du projet :
 
 ## 🚀 Équipe
 
 | Étudiants    | Prénom NOM  |
 | :----------- | :---------- |
-| Étudiant 1   | à compléter |
-| Étudiant 2   | à compléter |
-| Étudiant 3   | à compléter |
+| Étudiant 1   | Mael BRUNGARD |
+| Étudiant 2   | Alexandre GUILLET |
+| Étudiant 3   | Telmane SARKISSIAN |
 | (Étudiant 4) | à compléter |
