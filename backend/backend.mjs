@@ -88,10 +88,33 @@ export async function refreshAuthStore() {
 }
 
 export async function createUser(email, password, passwordConfirm, name, prename, pseudo, date) {
+    console.log(email, password, passwordConfirm, name, prename, pseudo, date);
+
+    // ─── 1. VALIDATIONS DE SÉCURITÉ EN AMONT ──────────────────────────────
     if (!email || !email.includes("@")) {
         throw new Error("Veuillez entrer une adresse email valide.");
     }
 
+    // 🔞 Vérification de la majorité (18 ans)
+    if (!date) {
+        throw new Error("Veuillez renseigner votre date de naissance.");
+    }
+
+    const birthDate = new Date(date);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+
+    // Si l'anniversaire n'est pas encore passé cette année, on retire 1 an
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+
+    if (age < 18) {
+        throw new Error("Vous devez avoir au moins 18 ans pour vous inscrire.");
+    }
+
+    // Sécurité du mot de passe
     if (password.length < 8) {
         throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
     }
@@ -108,6 +131,7 @@ export async function createUser(email, password, passwordConfirm, name, prename
         throw new Error("Les mots de passe ne correspondent pas.");
     }
 
+    // ─── 2. GÉNÉRATION DU TAG UNIQUE ─────────────────────────────────────
     let randomNumber = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
     let tag = `${pseudo}#${randomNumber}`;
     let attempts = 0;
@@ -123,6 +147,7 @@ export async function createUser(email, password, passwordConfirm, name, prename
         throw new Error("Impossible de générer un tag unique. Essayez un autre pseudo.");
     }
 
+    // ─── 3. INTERACTION POCKETBASE ET TRADUCTION DES ERREURS ─────────────
     try {
         const data = {
             "email": email,
