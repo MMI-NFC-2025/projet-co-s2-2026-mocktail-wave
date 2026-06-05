@@ -250,9 +250,19 @@ export async function addFriendID(receiverTagId) {
 
     return "Demande envoyée";
 }
+
 export async function addFriend(receiverTag) {
+    try {
+        if (pb.authStore.isValid) {
+            await pb.collection('users').authRefresh();
+        }
+    } catch (e) {
+        throw new Error("Session expirée, veuillez vous reconnecter.");
+    }
+
     const sendBy = pb.authStore.record;
     const TAG_REGEX = /^[^#]+#\d{4}$/;
+
     if (!sendBy) throw new Error("Non connecté");
 
     if (!TAG_REGEX.test(receiverTag)) {
@@ -261,31 +271,36 @@ export async function addFriend(receiverTag) {
 
     const sendTo = await getUserbyTag(receiverTag);
 
+    if (!sendTo) throw new Error("Utilisateur introuvable");
+    if (sendTo.id === sendBy.id) throw new Error("Autiste de merde");
+
     const hisReceiveRequests = sendTo.receiveFriendRequest || [];
     const hisFriends = sendTo.friends || [];
     const myReceiveRequests = sendBy.receiveFriendRequest || [];
 
-    if (!sendTo) throw new Error("Utilisateur introuvable");
-    if (sendTo.id === sendBy.id)
-        throw new Error("Autiste de merde");
+    // 2. ÉTAPE D'ACCEPTATION : Si l'ID du gars est dans MES requêtes reçues, on accepte
+    if (myReceiveRequests.includes(sendTo.id)) {
+        await pb.collection('users').update(sendBy.id, {
+            "friends+": sendTo.id,
+            "receiveFriendRequest-": sendTo.id
+        });
 
-    if (hisReceiveRequests.includes(sendBy.id)) {
-        throw new Error("Demande déjà envoyée !");
+        if (!hisFriends.includes(sendBy.id)) {
+            await pb.collection('users').update(sendTo.id, {
+                "friends+": sendBy.id
+            });
+        }
+
+        await pb.collection('users').authRefresh();
+        return "Amis ajoutés";
     }
 
     if (hisFriends.includes(sendBy.id)) {
         throw new Error("Déjà amis !");
     }
 
-    if (myReceiveRequests.includes(sendTo.id)) {
-        await pb.collection('users').update(sendBy.id, {
-            "friends+": sendTo.id,
-            "receiveFriendRequest-": sendTo.id
-        });
-        await pb.collection('users').update(sendTo.id, {
-            "friends+": sendBy.id
-        });
-        return "Amis ajoutés";
+    if (hisReceiveRequests.includes(sendBy.id)) {
+        throw new Error("Demande déjà envoyée !");
     }
 
     await pb.collection('users').update(sendTo.id, {
